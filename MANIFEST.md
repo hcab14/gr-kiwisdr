@@ -12,5 +12,3 @@ license:
 #icon: <icon_url> # Put a URL to a square image here that will be used as an icon on CGRAN
 ---
 GR KiwiSDR interface using websocket streams
-
-based on https://github.com/hcab14/kiwiclient

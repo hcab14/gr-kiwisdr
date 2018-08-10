@@ -8,6 +8,9 @@
 %include "kiwisdr_swig_doc.i"
 
 %{
+#include "kiwisdr/kiwisdr.h"
 %}
 
 
+%include "kiwisdr/kiwisdr.h"
+GR_SWIG_BLOCK_MAGIC2(kiwisdr, kiwisdr);

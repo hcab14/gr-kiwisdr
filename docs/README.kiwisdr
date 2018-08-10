@@ -1,3 +1,14 @@
+# gr-kiwisdr
+----
+
+## Overview
+Gnuradio KiwiSDR client based on [https://github.com/hcab14/kiwiclient](https://github.com/hcab14/kiwiclient)
+
+## Requirements
+* c++-11 compiler
+* boost >= 1.67 (boost.beast)
+
+## Usage
 This is the kiwisdr-write-a-block package meant as a guide to building
 out-of-tree packages. To use the kiwisdr blocks, the Python namespaces
 is in 'kiwisdr', which is imported as:
@@ -9,3 +20,4 @@ in this package. A quick listing of the details can be found in Python
 after importing by using:
 
     help(kiwisdr)
+

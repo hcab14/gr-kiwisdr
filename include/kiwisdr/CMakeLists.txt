@@ -22,6 +22,6 @@
 # Install public header files
 ########################################################################
 install(FILES
-    api.h
-    DESTINATION include/kiwisdr
-)
+  api.h
+  kiwisdr.h DESTINATION include/kiwisdr
+  )
