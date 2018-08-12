@@ -1,1 +1,1 @@
-cmake/* linguist-vendored
+*.cmake linguist-detectable=false
