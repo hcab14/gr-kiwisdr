@@ -21,3 +21,4 @@ after importing by using:
 
     help(kiwisdr)
 
+See [examples/kiwisdr_rx.grc](https://github.com/hcab14/gr-kiwisdr/blob/master/examples/kiwisdr_rx.grc).

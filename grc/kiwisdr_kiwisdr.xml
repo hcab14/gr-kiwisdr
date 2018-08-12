@@ -5,20 +5,58 @@
   <category>[kiwisdr]</category>
   <import>import kiwisdr</import>
   <make>kiwisdr.kiwisdr($host, $port)</make>
-  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
-       Sub-nodes:
-       * name
-       * key (makes the value accessible as $keyname, e.g. in the make node)
-       * type -->
+  <callback>set_rx_parameters($mod,$low_cut_Hz,$high_cut_Hz,$rx_freq_kHz)</callback>
+
   <param>
-    <name>host</name>
+    <name>Host name</name>
     <key>host</key>
     <type>string</type>
   </param>
+
   <param>
-    <name>port</name>
+    <name>Port number</name>
     <key>port</key>
     <type>string</type>
+  </param>
+
+  <param>
+    <name>Modulation</name>
+    <key>mod</key>
+    <value>iq</value>
+    <type>string</type>
+    <option>
+      <name>AM</name><key>am</key>
+    </option>
+    <option>
+      <name>USB</name><key>usb</key>
+    </option>
+    <option>
+      <name>LSB</name><key>lsb</key>
+    </option>
+    <option>
+      <name>FM</name><key>fm</key>
+    </option>
+    <option>
+      <name>IQ</name><key>iq</key>
+    </option>
+  </param>
+
+  <param>
+    <name>IF filter low cut (Hz)</name>
+    <key>low_cut_Hz</key>
+    <type>int</type>
+  </param>
+
+  <param>
+    <name>IF filter high cut (Hz)</name>
+    <key>high_cut_Hz</key>
+    <type>int</type>
+  </param>
+
+  <param>
+    <name>RX center frequency (kHz)</name>
+    <key>rx_freq_kHz</key>
+    <type>float</type>
   </param>
 
   <!-- Make one 'sink' node per input. Sub-nodes:
@@ -37,8 +75,21 @@
        * vlen
        * optional (set to 1 for optional inputs) -->
   <source>
-    <name>out</name>
-    <type>complex</type>
-    <!-- <type><!-\- e.g. int, float, complex, byte, short, xxx_vector, ...-\-></type> -->
+    <name>IQ</name>
+    <type>fc32</type>
+    <optional>
+      #if $mod() != 'iq'
+      1
+      #end if
+    </optional>
+  </source>
+  <source>
+    <name>Real</name>
+    <type>f32</type>
+    <optional>
+      #if $mod() == 'iq'
+      1
+      #end if
+    </optional>
   </source>
 </block>

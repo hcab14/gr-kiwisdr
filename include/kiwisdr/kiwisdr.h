@@ -54,6 +54,23 @@ class KIWISDR_API kiwisdr : virtual public gr::block
 
   virtual bool connect(const std::string& host,
                        const std::string& port) = 0;
+
+  virtual std::string get_client_public_ip() const = 0;
+  virtual int         get_rx_chans()         const = 0;
+  virtual int         get_chan_no_pwd()      const = 0;
+  virtual bool        is_password_ok()       const = 0;
+  virtual std::string get_version()          const = 0;
+  virtual std::string get_cfg()              const = 0;
+  virtual double      get_sample_rate()      const = 0;
+  virtual bool        is_audio_initialized() const = 0;
+  virtual double      get_center_freq()      const = 0;
+  virtual double      get_bandwidth()        const = 0;
+  virtual double      get_adc_clk_nom()      const = 0;
+
+  virtual void set_rx_parameters(const std::string& mode,
+                                 int low_cut_Hz,
+                                 int high_cut_Hz,
+                                 double freq_kHz) = 0;
 };
 
 } // namespace kiwisdr

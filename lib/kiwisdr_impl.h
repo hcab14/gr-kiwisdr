@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <map>
 #include <memory>
+#include <vector>
 
 #include <gnuradio/thread/thread.h>
 
@@ -48,6 +49,43 @@ namespace websocket = boost::beast::websocket;
 namespace gr {
 namespace kiwisdr {
 
+class snd_header {
+public:
+  snd_header()
+    : _seq(0)
+    , _smeter{0,0} {
+    static_assert(sizeof(snd_header) == 6,
+                  "snd_header has wrong packed size");
+  }
+  uint32_t seq()  const { return _seq; }
+  uint16_t rssi() const { return ((_smeter[0]<<8)+_smeter[1])&0x0FFF; }
+private:
+  uint32_t _seq;
+  uint8_t  _smeter[2];
+} __attribute__((__packed__)) ;
+
+class gnss_timestamp_header {
+public:
+  gnss_timestamp_header()
+    : _last_gps_solution(0)
+    , _dummy(0)
+    , _gpssec(0)
+    , _gpsnsec(0) {
+    static_assert(sizeof(gnss_timestamp_header) == 10,
+                  "gnss_timestamp_header has wrong packed size");
+  }
+  int      last_gps_solution() const { return _last_gps_solution; }
+  uint32_t gpssec()            const { return _gpssec; }
+  uint32_t gpsnsec()           const { return _last_gps_solution; }
+
+private:
+  uint8_t  _last_gps_solution;
+  uint8_t  _dummy;
+  uint32_t _gpssec;
+  uint32_t _gpsnsec;
+} __attribute__((__packed__)) ;
+
+
 class kiwisdr_impl : public kiwisdr
 {
 private:
@@ -59,6 +97,7 @@ private:
   gr::thread::thread             _ws_thread;
 
   boost::beast::flat_buffer      _ws_buffer;
+  std::vector<std::uint8_t>      _snd_buffer;
 
   bool _connected;
 
@@ -68,16 +107,21 @@ private:
   std::string _client_type;
   std::string _password;
 
+  std::map<std::string, std::string> _msg;
+  // double _audio_rate;
+  // double _sample_rate;
+
   std::map<const std::string, boost::format> _fmt;
 
-  struct mod_par {
+  struct rx_parameters {
+    std::string modulation;
     int         low_cut_Hz;
     int         high_cut_Hz;
     double      freq_kHz;
-  };
-  std::map<const std::string, mod_par> _mod_info;
+  } ;
+  rx_parameters _rx_parameters;
 
-  std::string _current_mod;
+  bool _iq_mode;
 
 public:
   kiwisdr_impl(const std::string& host,
@@ -98,16 +142,49 @@ public:
 
   void disconnect();
 
+  virtual std::string get_client_public_ip() const { return _msg.at("client_public_ip"); }
+  virtual int         get_rx_chans()         const { return std::stoi(_msg.at("rx_chans")); }
+  virtual int         get_chan_no_pwd()      const { return std::stoi(_msg.at("chan_no_pwd")); }
+  virtual bool        is_password_ok()       const { return _msg.at("badp") == "0"; }
+  virtual std::string get_version()          const { return _msg.at("version_maj")+"."+_msg.at("version_min"); }
+  virtual std::string get_cfg()              const { return _msg.at("load_cfg"); }
+  virtual double      get_audio_rate()       const { return std::stod(_msg.at("audio_rate")); }
+  virtual double      get_sample_rate()      const { return std::stod(_msg.at("sample_rate")); }
+  virtual bool        is_audio_initialized() const { return _msg.at("audio_init") == "1"; }
+  virtual double      get_center_freq()      const { return std::stod(_msg.at("center_freq")); }
+  virtual double      get_bandwidth()        const { return std::stod(_msg.at("bandwidth")); }
+  virtual double      get_adc_clk_nom()      const { return std::stod(_msg.at("adc_clk_nom")); }
+
+  virtual void set_rx_parameters(const std::string& mode,
+                                 int low_cut_Hz,
+                                 int high_cut_Hz,
+                                 double freq_kHz);
+
   std::string make_uri(const std::string& what) const;
 
   void run_io_context() { std::cout << "run_io_context\n"; _ioc.run(); }
 
   void start_read();
+
   void on_read(boost::system::error_code ec,
                std::size_t bytes_transferred);
 
+  void on_write(boost::system::error_code ec,
+                std::size_t bytes_transferred);
+
   // sync send message
   void ws_write(const std::string& msg);
+
+  // consume _ws_buffer and convert to std::string
+  // len==-1 -> consume all bytes in the buffer
+  std::string consume_buffer_as_string(int len=-1);
+
+  // consume _ws_buffer and convert to std::vector
+  template<typename T>
+  std::vector<T> consume_buffer_as_vector();
+
+  void on_message(const std::string& payload);
+//  void kiwisdr_impl::on_audio(std::string payload);
 
 };
 
