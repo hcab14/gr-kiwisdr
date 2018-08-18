@@ -52,12 +52,14 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
               gr::io_signature::make (0, 0, sizeof(gr_complex)),
               gr::io_signature::make2(1, 2, sizeof(gr_complex), sizeof(float)))
   , _ioc()
-  , _ws(_ioc)
+  , _strand{_ioc}
+  , _ws{_ioc}
   , _ws_cond_wait()
   , _ws_mutex()
   , _ws_thread()
   , _ws_buffer()
   , _snd_buffer()
+  , _ws_write_queue()
   , _connected(false)
   , _host(host)
   , _port(port)
@@ -67,7 +69,7 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
   , _rx_parameters{"iq",-6000,6000,15040}
   , _iq_mode(_rx_parameters.modulation == "iq")
   , _fmt{{"auth",        boost::format("SET auth t=%s p=%s")},
-         {"ident_user",  boost::format("SET auth t=%s p=%s")},
+         {"ident_user",  boost::format("SET ident_user=%s")},
          {"geo",         boost::format("SET geo=%s")},
          {"inactivity_timeout", boost::format("SET OVERRIDE inactivity_timeout=%d")},
          {"keepalive",   boost::format("SET keepalive")},
@@ -108,31 +110,46 @@ kiwisdr_impl::general_work(int noutput_items,
   if (!_ws_cond_wait.timed_wait(lock, boost::posix_time::milliseconds(10))) // timeout
     return 0;
 
-  // (1) decode snd_header
-  auto snd_header_ptr = (const snd_header*)(&_snd_buffer[0]);
-  int header_length = sizeof(snd_header);
-  std::cout << "SND: seq= " << snd_header_ptr->seq() << " RSSI= " << snd_header_ptr->rssi() << std::endl;
+  // (1) decode snd_info_header
+  snd_info_header snd_info;
+  std::memcpy(&snd_info, &_snd_buffer[0], sizeof(snd_info));
+  int header_length = sizeof(snd_info);
+  // std::cout << "SND: seq= " << snd_info.seq() << " RSSI= " << snd_info.rssi() << "\n";
 
   // (2) decode gnss timestamp header (IQ mode only)
   if (_iq_mode) {
-    auto gnss_timestamp_header_ptr = (const gnss_timestamp_header*)(&_snd_buffer[sizeof(snd_header)]);
+    gnss_timestamp_header gnss_timestamp;
+    std::memcpy(&gnss_timestamp, &_snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
     header_length += sizeof(gnss_timestamp_header);
-    std::cout << "SND: gpssec= " << gnss_timestamp_header_ptr->gpssec()
-              << " gpsnsec= " << gnss_timestamp_header_ptr->gpsnsec()
-              << " last_gnss_solution= " << gnss_timestamp_header_ptr->last_gps_solution() << std::endl;
+    // std::cout << "SND: gpssec= " << gnss_timestamp.gpssec()
+    //           << " gpsnsec= " << gnss_timestamp.gpsnsec()
+    //           << " last_gnss_solution= " << gnss_timestamp.last_gps_solution() << " | ";
+
+    // std::copy(_snd_buffer.begin() + sizeof(snd_info_header),
+    //           _snd_buffer.begin() + sizeof(snd_info_header) + sizeof(gnss_timestamp_header),
+    //           std::ostream_iterator<int>(std::cout, " "));
+    // std::cout << std::endl;
   }
   assert(_snd_buffer.size() > header_length);
 
   const auto n_samples = (_snd_buffer.size() - header_length) >> (_iq_mode ? 2 : 1);
   assert(n_samples <= noutput_items);
+  assert((_snd_buffer.size() - header_length) % 2 == 0);
   noutput_items = (_snd_buffer.size() - header_length) >> 1;
 
-  std::cout << "SND: n_samples = " << noutput_items << " " << _snd_buffer.size() - header_length << std::endl;
+  // std::cout << "SND: n_samples = " << noutput_items << " " << _snd_buffer.size() - header_length << std::endl;
 
+
+  // big-endian -> little endian conversion
+  volk_16u_byteswap((uint16_t*)(&_snd_buffer[header_length]), noutput_items);
+
+  // uint16_t -> float conversion
   float* out = (float*)(output_items[_iq_mode ? 0 : 1]);
-  volk_16i_s32f_convert_32f(out, (const int16_t*)(&_snd_buffer[header_length]), 32768.0f, noutput_items);
-  if (_iq_mode)
+  volk_16i_s32f_convert_32f(out, (const int16_t*)(&_snd_buffer[header_length]), float((1<<15)-1), noutput_items);
+  if (_iq_mode) {
+    assert(noutput_items %2 == 0);
     noutput_items >>= 1;
+  }
 
   // Tell runtime system how many output items we produced.
   return noutput_items;
@@ -142,14 +159,6 @@ void kiwisdr_impl::ws_write(const std::string& msg) {
   boost::system::error_code ec;
   const size_t n = _ws.write(boost::asio::buffer(msg), ec);
   std::cout << "ws_write '" << msg << "' n= " << n << " ec= " << ec << std::endl;
-}
-
-template<typename T>
-std::vector<T> to_vector(boost::beast::flat_buffer const& buffer) {
-  const auto dv = std::div(boost::asio::buffer_size(buffer.data()), ssize_t(sizeof(T)));
-  assert(dv.rem == 0);
-  auto p0 = boost::asio::buffer_cast<T const*>(boost::beast::buffers_front(buffer.data()));
-  return std::vector<T>(p0, p0+dv.quot);
 }
 
 inline std::string to_string(boost::beast::flat_buffer const& buffer, int len=-1)
@@ -167,12 +176,6 @@ std::string kiwisdr_impl::consume_buffer_as_string(int len) {
   return s;
 }
 
-template<typename T>
-std::vector<T> kiwisdr_impl::consume_buffer_as_vector() {
-  const typename std::vector<T> v = to_vector<T>(_ws_buffer);
-  _ws_buffer.consume(boost::asio::buffer_size(_ws_buffer.data()));
-  return v;
-}
 
 std::map<std::string, std::string>
 parse_key_value(const std::string& s) {
@@ -209,13 +212,16 @@ bool kiwisdr_impl::connect(const std::string& host,
   _ws.handshake(_host, make_uri("SND"));
 
   ws_write(str(_fmt.at("auth") % _client_type % _password));
+  ws_write(str(_fmt.at("ident_user") % "gr-kiwisdr"));
+  ws_write(str(_fmt.at("geo") % "geo"));
 
   _ws_thread = gr::thread::thread(boost::bind(&kiwisdr_impl::run_io_context, this));
-
-  start_read();
   _connected = true;
+  ws_async_read();
 
-  std::cout << "connected\n";
+  std::cout << "connected" << std::endl;
+
+
   return true;
 }
 
@@ -252,6 +258,10 @@ void kiwisdr_impl::set_rx_parameters(const std::string& mode,
             << low_cut_Hz << " "
             << high_cut_Hz << " "
             << freq_kHz << "####################" << std::endl;
+  _strand.post(boost::bind(&kiwisdr_impl::ws_async_write,
+                           this,
+                           str(_fmt["mod"] % mode % low_cut_Hz % high_cut_Hz % freq_kHz)));
+//  ws_async_write(str(_fmt["mod"] % mode % low_cut_Hz % high_cut_Hz % freq_kHz));
 }
 
 std::string kiwisdr_impl::make_uri(const std::string& what) const {
@@ -260,49 +270,79 @@ std::string kiwisdr_impl::make_uri(const std::string& what) const {
   return "/" + boost::lexical_cast<std::string>(t0) + "/" + what;
 }
 
-void kiwisdr_impl::start_read() {
-  std::cout << "start_read\n";
+void kiwisdr_impl::ws_async_read() {
+//  std::cout << "ws_async_read\n";
   _ws.async_read(_ws_buffer,
-                 boost::bind(&kiwisdr_impl::on_read,
-                             this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
-                             boost::asio::placeholders::error,
-                             boost::asio::placeholders::bytes_transferred));
+                 boost::asio::bind_executor(_strand,
+                                            boost::bind(&kiwisdr_impl::on_read,
+                                                        this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
+                                                        boost::asio::placeholders::error,
+                                                        boost::asio::placeholders::bytes_transferred)));
+}
+
+void kiwisdr_impl::ws_async_write(const std::string& msg) {
+  std::cout << "ws_async_write '" << msg << "'\n";
+  const bool not_write_in_progress = _ws_write_queue.empty();
+
+  _ws_write_queue.push_back(msg);
+
+  if (not_write_in_progress) {
+    _ws.async_write(boost::asio::buffer(_ws_write_queue.front().data(),
+                                        _ws_write_queue.front().length()),
+                    boost::asio::bind_executor(_strand,
+                                               boost::bind(&kiwisdr_impl::on_write,
+                                                           this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
+                                                           boost::asio::placeholders::error,
+                                                           boost::asio::placeholders::bytes_transferred)));
+  }
 }
 
 
 void kiwisdr_impl::on_write(boost::system::error_code ec,
                            std::size_t bytes_transferred) {
   std::cout << "on_write: bytes_transferred= " << bytes_transferred << " ec= " << ec << std::endl;
-  start_read();
+  gr::thread::scoped_lock lock(d_setlock);
+  _ws_write_queue.pop_front();
+  if (!_ws_write_queue.empty()) {
+    _ws.async_write(boost::asio::buffer(_ws_write_queue.front().data(),
+                                        _ws_write_queue.front().length()),
+                    boost::asio::bind_executor(_strand,
+                                               boost::bind(&kiwisdr_impl::on_write,
+                                                           this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
+                                                           boost::asio::placeholders::error,
+                                                           boost::asio::placeholders::bytes_transferred)));
+  }
 }
 
 
 void kiwisdr_impl::on_read(boost::system::error_code ec,
                            std::size_t bytes_transferred) {
-  std::cout << "on_read: bytes_transferred= " << bytes_transferred << " ec= " << ec << "'\n";
+//  std::cout << "on_read: bytes_transferred= " << bytes_transferred << " ec= " << ec << "'\n";
 
   const std::string type = consume_buffer_as_string(3);
   if (type == "MSG") {
     on_message(consume_buffer_as_string());
-  }
-
-  if (type == "SND") {
+  } else if (type == "SND") {
     boost::lock_guard<gr::thread::mutex> lock(_ws_mutex);
 
     const size_t n_bytes = boost::asio::buffer_size(_ws_buffer.data());
     _snd_buffer.resize(n_bytes);
 
-    auto p0 = boost::asio::buffer_cast<std::uint8_t const*>(boost::beast::buffers_front(_ws_buffer.data()));
+    auto p0 = boost::asio::buffer_cast<uint8_t const*>(boost::beast::buffers_front(_ws_buffer.data()));
     std::copy(p0, p0+n_bytes, _snd_buffer.begin());
 
     _ws_buffer.consume(n_bytes);
     _ws_cond_wait.notify_one();
+  } else {
+    std::cout << "on_read: unknwon type '" << type << "'\n";
   }
 
-  // to be removed later on
-  _ws_buffer.consume(bytes_transferred);
+  assert(boost::asio::buffer_size(_ws_buffer.data()) == 0);
 
-  start_read();
+  // to be removed later on
+  //_ws_buffer.consume(bytes_transferred);
+
+  ws_async_read();
 }
 
 void kiwisdr_impl::on_message(const std::string& payload) {
@@ -324,18 +364,26 @@ void kiwisdr_impl::on_message(const std::string& payload) {
     if (kv.first == "badp" && kv.second == "1")
       throw std::runtime_error("bad password");
     if (kv.first == "audio_rate") {
-      ws_write(str(_fmt["AR"] % std::stoi(kv.second) % 44100));
+      std::cout << "audio_rate '" << kv.second << "' " << std::stoi(kv.second) << std::endl;
+      ws_async_write(str(_fmt["AR"] % std::stoi(kv.second) % 44100));
       //   _audio_rate = std::stod(kv.second);
-    }
-    if (kv.first == "sample_rate") {
-      ws_write(str(_fmt["mod"]
+    } else if (kv.first == "sample_rate") {
+      ws_async_write(str(_fmt["squelch"]       % 0 % 0));
+      ws_async_write(str(_fmt["lms_autonotch"] % 0));
+      ws_async_write(str(_fmt["genattn"]       % 0));
+      ws_async_write(str(_fmt["gen"]           % 0 % 0));
+      ws_async_write(str(_fmt["compression"]   % 0));
+      ws_async_write(str(_fmt["mod"]
                    % _rx_parameters.modulation
                    % _rx_parameters.low_cut_Hz
                    % _rx_parameters.high_cut_Hz
                    % _rx_parameters.freq_kHz));
-      ws_write(str(_fmt["agc"] % true % false % -100 % 6 % 1000 % 50));
-      ws_write(str(_fmt["keepalive"]));
+      ws_async_write(str(_fmt["agc"]
+                   % true % false % -100 % 6 % 1000 % 50));
+      ws_async_write(str(_fmt["keepalive"]));
       //   _sample_rate = std::stod(kv.second);
+    } else {
+      std::cout << "message: " << kv.first << " " << kv.second << std::endl;
     }
   }
 }

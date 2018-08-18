@@ -21,6 +21,8 @@
 #ifndef INCLUDED_KIWISDR_KIWISDR_IMPL_H
 #define INCLUDED_KIWISDR_KIWISDR_IMPL_H
 
+//#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/asio/connect.hpp>
@@ -37,6 +39,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <deque>
 
 #include <gnuradio/thread/thread.h>
 
@@ -49,17 +52,21 @@ namespace websocket = boost::beast::websocket;
 namespace gr {
 namespace kiwisdr {
 
-class snd_header {
+class snd_info_header {
 public:
-  snd_header()
-    : _seq(0)
+  snd_info_header()
+    : _flags(0)
+    , _seq(0)
     , _smeter{0,0} {
-    static_assert(sizeof(snd_header) == 6,
-                  "snd_header has wrong packed size");
+    static_assert(sizeof(snd_info_header) == 7,
+                  "snd_info_header has wrong packed size");
   }
+  uint8_t  flags() const { return _flags; }
   uint32_t seq()  const { return _seq; }
-  uint16_t rssi() const { return ((_smeter[0]<<8)+_smeter[1])&0x0FFF; }
+  float    rssi() const { return 0.1f*((uint16_t(_smeter[0]) << 8) +
+                                        uint16_t(_smeter[1])) - 127.0f; }
 private:
+  uint8_t  _flags;
   uint32_t _seq;
   uint8_t  _smeter[2];
 } __attribute__((__packed__)) ;
@@ -76,7 +83,7 @@ public:
   }
   int      last_gps_solution() const { return _last_gps_solution; }
   uint32_t gpssec()            const { return _gpssec; }
-  uint32_t gpsnsec()           const { return _last_gps_solution; }
+  uint32_t gpsnsec()           const { return _gpsnsec; }
 
 private:
   uint8_t  _last_gps_solution;
@@ -90,6 +97,7 @@ class kiwisdr_impl : public kiwisdr
 {
 private:
   boost::asio::io_context        _ioc;
+  boost::asio::io_context::strand _strand;
   websocket::stream<tcp::socket> _ws;
 
   gr::thread::condition_variable _ws_cond_wait;
@@ -98,6 +106,8 @@ private:
 
   boost::beast::flat_buffer      _ws_buffer;
   std::vector<std::uint8_t>      _snd_buffer;
+
+  std::deque<std::string>       _ws_write_queue;
 
   bool _connected;
 
@@ -164,7 +174,8 @@ public:
 
   void run_io_context() { std::cout << "run_io_context\n"; _ioc.run(); }
 
-  void start_read();
+  // async read
+  void ws_async_read();
 
   void on_read(boost::system::error_code ec,
                std::size_t bytes_transferred);
@@ -175,13 +186,12 @@ public:
   // sync send message
   void ws_write(const std::string& msg);
 
+  // async send message
+  void ws_async_write(const std::string& msg);
+
   // consume _ws_buffer and convert to std::string
   // len==-1 -> consume all bytes in the buffer
   std::string consume_buffer_as_string(int len=-1);
-
-  // consume _ws_buffer and convert to std::vector
-  template<typename T>
-  std::vector<T> consume_buffer_as_vector();
 
   void on_message(const std::string& payload);
 //  void kiwisdr_impl::on_audio(std::string payload);

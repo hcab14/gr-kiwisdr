@@ -76,7 +76,8 @@
        * optional (set to 1 for optional inputs) -->
   <source>
     <name>IQ</name>
-    <type>fc32</type>
+    <type>complex</type>
+    <!-- <vlen>512</vlen> -->
     <optional>
       #if $mod() != 'iq'
       1
@@ -86,6 +87,7 @@
   <source>
     <name>Real</name>
     <type>f32</type>
+    <!-- <vlen>512</vlen> -->
     <optional>
       #if $mod() == 'iq'
       1
