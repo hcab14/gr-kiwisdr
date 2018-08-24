@@ -436,6 +436,37 @@
     </param>
   </block>
   <block>
+    <key>import</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(192, 298)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>import_0</value>
+    </param>
+    <param>
+      <key>import</key>
+      <value>import kiwisdr</value>
+    </param>
+  </block>
+  <block>
     <key>kiwisdr_kiwisdr</key>
     <param>
       <key>alias</key>
@@ -455,7 +486,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(170, 90)</value>
+      <value>(170, 80)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -467,7 +498,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>kiwisdr_kiwisdr_0</value>
+      <value>kiwisdr_kiwisdr_1</value>
     </param>
     <param>
       <key>high_cut_Hz</key>
@@ -945,13 +976,13 @@
     </param>
   </block>
   <connection>
-    <source_block_id>kiwisdr_kiwisdr_0</source_block_id>
+    <source_block_id>kiwisdr_kiwisdr_1</source_block_id>
     <sink_block_id>qtgui_waterfall_sink_x_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>kiwisdr_kiwisdr_0</source_block_id>
+    <source_block_id>kiwisdr_kiwisdr_1</source_block_id>
     <sink_block_id>qtgui_waterfall_sink_x_0_0</sink_block_id>
     <source_key>1</source_key>
     <sink_key>0</sink_key>

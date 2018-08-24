@@ -21,21 +21,19 @@
 #ifndef INCLUDED_KIWISDR_KIWISDR_IMPL_H
 #define INCLUDED_KIWISDR_KIWISDR_IMPL_H
 
-//#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
+#include <boost/asio/bind_executor.hpp>
 #include <boost/asio/connect.hpp>
-// avoid the warning message to switch from Boost.Coroutine to Boost.Coroutine2
-#define BOOST_COROUTINES_NO_DEPRECATION_WARNING
-#include <boost/asio/spawn.hpp>
-#include <boost/asio/io_context.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/format.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <chrono>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -96,9 +94,11 @@ private:
 class kiwisdr_impl : public kiwisdr
 {
 private:
-  boost::asio::io_context        _ioc;
+  boost::asio::io_context         _ioc;
+  boost::asio::executor_work_guard<boost::asio::io_context::executor_type> _work;
   boost::asio::io_context::strand _strand;
-  websocket::stream<tcp::socket> _ws;
+  tcp::resolver                   _resolver;
+  websocket::stream<tcp::socket>  _ws;
 
   gr::thread::condition_variable _ws_cond_wait;
   gr::thread::mutex              _ws_mutex;
@@ -110,6 +110,7 @@ private:
   std::deque<std::string>       _ws_write_queue;
 
   bool _connected;
+  int  _keepalive_counter;
 
   std::string _host;
   std::string _port;
@@ -147,11 +148,6 @@ public:
   virtual bool start();
   virtual bool stop();
 
-  virtual bool connect(const std::string& host,
-                       const std::string& port);
-
-  void disconnect();
-
   virtual std::string get_client_public_ip() const { return _msg.at("client_public_ip"); }
   virtual int         get_rx_chans()         const { return std::stoi(_msg.at("rx_chans")); }
   virtual int         get_chan_no_pwd()      const { return std::stoi(_msg.at("chan_no_pwd")); }
@@ -165,23 +161,50 @@ public:
   virtual double      get_bandwidth()        const { return std::stod(_msg.at("bandwidth")); }
   virtual double      get_adc_clk_nom()      const { return std::stod(_msg.at("adc_clk_nom")); }
 
+  // change rx parameters
   virtual void set_rx_parameters(const std::string& mode,
                                  int low_cut_Hz,
                                  int high_cut_Hz,
                                  double freq_kHz);
 
+private:
+  boost::shared_ptr<kiwisdr_impl> impl_shared_from_this() {
+    return boost::dynamic_pointer_cast<kiwisdr_impl>(shared_from_this());
+  }
+  virtual bool connect(const std::string& host,
+                       const std::string& port);
+
+  void disconnect();
+
+  // returns /{unix time seconds}/what
   std::string make_uri(const std::string& what) const;
 
-  void run_io_context() { std::cout << "run_io_context\n"; _ioc.run(); }
+  // async resolve
+  void async_resolve();
+
+  // callback for async resolve
+  void on_resolve(const boost::system::error_code& ec,
+                  const tcp::resolver::results_type& results);
+
+  // callback for async connect
+  void on_connect(const boost::system::error_code& ec);
+
+  // callback for async handshake
+  void on_handshake(const boost::system::error_code& ec);
 
   // async read
   void ws_async_read();
 
-  void on_read(boost::system::error_code ec,
+  // consume _ws_buffer and convert to std::string
+  // len==-1 -> consume all bytes in the buffer
+  std::string consume_buffer_as_string(int len=-1);
+
+  // callback for ws_async_read
+  void on_read(const boost::system::error_code& ec,
                std::size_t bytes_transferred);
 
-  void on_write(boost::system::error_code ec,
-                std::size_t bytes_transferred);
+  // decodes and processes kiwisdr messages
+  void on_message(const std::string& payload);
 
   // sync send message
   void ws_write(const std::string& msg);
@@ -189,12 +212,15 @@ public:
   // async send message
   void ws_async_write(const std::string& msg);
 
-  // consume _ws_buffer and convert to std::string
-  // len==-1 -> consume all bytes in the buffer
-  std::string consume_buffer_as_string(int len=-1);
+  // callback for ws_async_write
+  void on_write(const boost::system::error_code& ec,
+                std::size_t bytes_transferred);
 
-  void on_message(const std::string& payload);
-//  void kiwisdr_impl::on_audio(std::string payload);
+  // async close
+  void ws_async_close();
+
+  // callback for ws_async_close
+  void on_close(const boost::system::error_code& ec);
 
 };
 

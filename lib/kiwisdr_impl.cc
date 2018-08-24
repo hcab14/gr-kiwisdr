@@ -22,8 +22,6 @@
 #include "config.h"
 #endif
 
-#include <boost/asio/placeholders.hpp>
-
 #include <cstdlib>
 #include <regex>
 
@@ -51,9 +49,11 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
   : gr::block("kiwisdr",
               gr::io_signature::make (0, 0, sizeof(gr_complex)),
               gr::io_signature::make2(1, 2, sizeof(gr_complex), sizeof(float)))
-  , _ioc()
-  , _strand{_ioc}
-  , _ws{_ioc}
+  , _ioc{}
+  , _work(boost::asio::make_work_guard(_ioc))
+  , _strand(_ioc)
+  , _resolver(_ioc)
+  , _ws(_ioc)
   , _ws_cond_wait()
   , _ws_mutex()
   , _ws_thread()
@@ -61,12 +61,13 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
   , _snd_buffer()
   , _ws_write_queue()
   , _connected(false)
+  , _keepalive_counter(0)
   , _host(host)
   , _port(port)
   , _client_type("kiwi")
   , _password()
   , _msg()
-  , _rx_parameters{"iq",-6000,6000,15040}
+  , _rx_parameters{"iq", -6000, 6000, 15040}
   , _iq_mode(_rx_parameters.modulation == "iq")
   , _fmt{{"auth",        boost::format("SET auth t=%s p=%s")},
          {"ident_user",  boost::format("SET ident_user=%s")},
@@ -86,7 +87,7 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
          {"wf_comp",     boost::format("SET wf_comp=%d")},
          {"wf_speed",    boost::format("SET wf_speed=%d")}}
 {
-  std::cout << "args= " << host << ", " << port << std::endl;
+  // empty for now
 }
 
 /*
@@ -94,41 +95,43 @@ kiwisdr_impl::kiwisdr_impl(const std::string& host,
  */
 kiwisdr_impl::~kiwisdr_impl()
 {
-  std::cout << "kiwisdr_impl::~kiwisdr_impl\n";
   if (_connected)
     disconnect();
 }
 
-int
-kiwisdr_impl::general_work(int noutput_items,
-                           gr_vector_int& ninput_items,
-                           gr_vector_const_void_star& input_items,
-                           gr_vector_void_star& output_items)
+int kiwisdr_impl::general_work(int noutput_items,
+                               gr_vector_int& ninput_items,
+                               gr_vector_const_void_star& input_items,
+                               gr_vector_void_star& output_items)
 {
+  gr::thread::scoped_lock l(d_setlock);
   boost::unique_lock<boost::mutex> lock(_ws_mutex);
 
   if (!_ws_cond_wait.timed_wait(lock, boost::posix_time::milliseconds(10))) // timeout
+    return 0;
+
+  if (!_connected)
     return 0;
 
   // (1) decode snd_info_header
   snd_info_header snd_info;
   std::memcpy(&snd_info, &_snd_buffer[0], sizeof(snd_info));
   int header_length = sizeof(snd_info);
-  // std::cout << "SND: seq= " << snd_info.seq() << " RSSI= " << snd_info.rssi() << "\n";
+  std::cout << "SND: seq= " << snd_info.seq() << " RSSI= " << snd_info.rssi() << "\n";
 
   // (2) decode gnss timestamp header (IQ mode only)
   if (_iq_mode) {
     gnss_timestamp_header gnss_timestamp;
     std::memcpy(&gnss_timestamp, &_snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
     header_length += sizeof(gnss_timestamp_header);
-    // std::cout << "SND: gpssec= " << gnss_timestamp.gpssec()
-    //           << " gpsnsec= " << gnss_timestamp.gpsnsec()
-    //           << " last_gnss_solution= " << gnss_timestamp.last_gps_solution() << " | ";
+    std::cout << "SND: gpssec= " << gnss_timestamp.gpssec()
+              << " gpsnsec= " << gnss_timestamp.gpsnsec()
+              << " last_gnss_solution= " << gnss_timestamp.last_gps_solution() << " | ";
 
-    // std::copy(_snd_buffer.begin() + sizeof(snd_info_header),
-    //           _snd_buffer.begin() + sizeof(snd_info_header) + sizeof(gnss_timestamp_header),
-    //           std::ostream_iterator<int>(std::cout, " "));
-    // std::cout << std::endl;
+    std::copy(_snd_buffer.begin() + sizeof(snd_info_header),
+              _snd_buffer.begin() + sizeof(snd_info_header) + sizeof(gnss_timestamp_header),
+              std::ostream_iterator<int>(std::cout, " "));
+    std::cout << std::endl;
   }
   assert(_snd_buffer.size() > header_length);
 
@@ -136,9 +139,6 @@ kiwisdr_impl::general_work(int noutput_items,
   assert(n_samples <= noutput_items);
   assert((_snd_buffer.size() - header_length) % 2 == 0);
   noutput_items = (_snd_buffer.size() - header_length) >> 1;
-
-  // std::cout << "SND: n_samples = " << noutput_items << " " << _snd_buffer.size() - header_length << std::endl;
-
 
   // big-endian -> little endian conversion
   volk_16u_byteswap((uint16_t*)(&_snd_buffer[header_length]), noutput_items);
@@ -155,10 +155,137 @@ kiwisdr_impl::general_work(int noutput_items,
   return noutput_items;
 }
 
-void kiwisdr_impl::ws_write(const std::string& msg) {
-  boost::system::error_code ec;
-  const size_t n = _ws.write(boost::asio::buffer(msg), ec);
-  std::cout << "ws_write '" << msg << "' n= " << n << " ec= " << ec << std::endl;
+bool kiwisdr_impl::start() {
+  gr::thread::scoped_lock lock(d_setlock);
+  if (!_connected)
+    connect(_host, _port);
+  auto const tnow = std::chrono::system_clock::now();
+  const time_t t0 = std::chrono::system_clock::to_time_t(tnow);
+  std::cout << "start " << t0 << "\n";
+  return true;
+}
+bool kiwisdr_impl::stop() {
+  gr::thread::scoped_lock lock(d_setlock);
+
+  if (!_connected) {
+    return true;
+  }
+  disconnect();
+  return true;
+}
+
+void kiwisdr_impl::set_rx_parameters(const std::string& mode,
+                                     int low_cut_Hz,
+                                     int high_cut_Hz,
+                                     double freq_kHz) {
+  gr::thread::scoped_lock lock(d_setlock);
+  _rx_parameters = rx_parameters{mode, low_cut_Hz, high_cut_Hz, freq_kHz};
+  _iq_mode       = (mode == "iq");
+  boost::asio::post(_strand,
+                    std::bind(
+                      &kiwisdr_impl::ws_async_write,
+                      impl_shared_from_this(),
+                      str(_fmt["mod"] % mode % low_cut_Hz % high_cut_Hz % freq_kHz)));
+}
+
+bool kiwisdr_impl::connect(const std::string& host,
+                           const std::string& port) {
+  _host = host;
+  _port = port;
+
+  boost::asio::post(_strand, std::bind(&kiwisdr_impl::async_resolve, impl_shared_from_this()));
+
+  _ws_thread = gr::thread::thread(boost::bind(&boost::asio::io_context::run, &_ioc));
+  return true;
+}
+
+void kiwisdr_impl::disconnect() {
+  std::cout << "disconnect:\n";
+
+  if (!_connected)
+    return;
+
+  _ioc.reset();
+  _ioc.stop();
+  _ws_thread.join();
+  std::cout << "...disconnected\n";
+
+  _connected = false;
+}
+
+std::string kiwisdr_impl::make_uri(const std::string& what) const {
+  auto const tnow = std::chrono::system_clock::now();
+  const time_t t0 = std::chrono::system_clock::to_time_t(tnow);
+  return "/" + std::to_string(t0) + "/" + what;
+}
+
+void kiwisdr_impl::async_resolve() {
+  std::cout << "kiwisdr_impl::async_resolve" << std::endl;
+  _resolver.async_resolve(_host,
+                          _port,
+                          boost::asio::bind_executor(
+                            _strand,
+                            std::bind(
+                              &kiwisdr_impl::on_resolve,
+                              impl_shared_from_this(),
+                              std::placeholders::_1,
+                              std::placeholders::_2)));
+}
+void kiwisdr_impl::on_resolve(const boost::system::error_code& ec,
+                              const tcp::resolver::results_type& results) {
+  std::cout << "on_resolve " << ec << " " << ec.message()  << " " << results.size() << std::endl;
+  if(ec) {
+    return;
+  }
+  // Make the connection on the IP address we get from a lookup
+  boost::asio::async_connect(_ws.next_layer(),
+                             results.begin(),
+                             results.end(),
+                             boost::asio::bind_executor(
+                               _strand,
+                               std::bind(
+                                 &kiwisdr_impl::on_connect,
+                                 impl_shared_from_this(),
+                                 std::placeholders::_1)));
+}
+void kiwisdr_impl::on_connect(const boost::system::error_code& ec) {
+  std::cout << "on_connect: " << ec << " " << ec.message()  << std::endl;
+  if (ec)
+    return;
+  _ws.async_handshake(_host,
+                      make_uri("SND"),
+                      boost::asio::bind_executor(
+                        _strand,
+                        std::bind(
+                          &kiwisdr_impl::on_handshake,
+                          impl_shared_from_this(),
+                          std::placeholders::_1)));
+}
+
+void kiwisdr_impl::on_handshake(const boost::system::error_code& ec) {
+  std::cout << "on_handshake: " << ec << " " << ec.message()  << std::endl;
+  if (ec)
+    return;
+
+  ws_async_write(str(_fmt.at("auth") % _client_type % _password));
+  ws_async_write(str(_fmt.at("ident_user") % "gr-kiwisdr"));
+  ws_async_write(str(_fmt.at("geo") % "geo"));
+
+  _connected = true;
+  ws_async_read();
+
+}
+
+void kiwisdr_impl::ws_async_read() {
+  std::cout << "ws_async_read\n";
+  _ws.async_read(_ws_buffer,
+                 boost::asio::bind_executor(
+                   _strand,
+                   std::bind(
+                     &kiwisdr_impl::on_read,
+                     impl_shared_from_this(),
+                     std::placeholders::_1,
+                     std::placeholders::_2)));
 }
 
 inline std::string to_string(boost::beast::flat_buffer const& buffer, int len=-1)
@@ -170,156 +297,29 @@ inline std::string to_string(boost::beast::flat_buffer const& buffer, int len=-1
                       : len));
 }
 
+// consumes len byts of a flat_buffer and returns them as a string
+// len==-1 -> all bytes are retured as a string
 std::string kiwisdr_impl::consume_buffer_as_string(int len) {
   const std::string s = to_string(_ws_buffer, len);
   _ws_buffer.consume(len);
   return s;
 }
 
+void kiwisdr_impl::on_read(const boost::system::error_code& ec,
+                           std::size_t bytes_transferred) {
+  std::cout << "on_read: bytes_transferred= " << bytes_transferred << " ec= " << ec << " " << ec.message()  << "\n";
 
-std::map<std::string, std::string>
-parse_key_value(const std::string& s) {
-  const std::regex re(
-    "([^\\s]+)" // non-whitespace
-    "="         // literal '='
-    "([^\\s]+)" // non-whitespace
-    "[\\s]*"    // zero or more whitespaces
-    );
-  std::map<std::string, std::string> key_value_map;
-  for (auto i=std::sregex_iterator(s.begin(), s.end(), re),
-         end=std::sregex_iterator(); i != end; ++i) {
-    assert(i->size() == 3);
-    key_value_map[(*i)[1]] = (*i)[2];
-  }
-  return key_value_map;
-}
-
-bool kiwisdr_impl::connect(const std::string& host,
-                           const std::string& port) {
-  _host = host;
-  _port = port;
-  std::cout << "connect: " << host << " " << port << "\n";
-
-  // make a websocket stream object (NOTE: may be superfluous as this is done in the constructor)
-  _ws = websocket::stream<tcp::socket>(_ioc);
-
-  // resolve host,port
-  tcp::resolver resolver{_ioc};
-  auto const results = resolver.resolve(_host, _port);
-  boost::asio::connect(_ws.next_layer(), results.begin(), results.end());
-
-  // websocket handshake
-  _ws.handshake(_host, make_uri("SND"));
-
-  ws_write(str(_fmt.at("auth") % _client_type % _password));
-  ws_write(str(_fmt.at("ident_user") % "gr-kiwisdr"));
-  ws_write(str(_fmt.at("geo") % "geo"));
-
-  _ws_thread = gr::thread::thread(boost::bind(&kiwisdr_impl::run_io_context, this));
-  _connected = true;
-  ws_async_read();
-
-  std::cout << "connected" << std::endl;
-
-
-  return true;
-}
-
-void kiwisdr_impl::disconnect() {
-  std::cout << "disconnect\n";
-  gr::thread::scoped_lock lock(d_setlock);
-
-  if (!_connected)
+  if (ec == boost::beast::websocket::error::closed) {
+    std::cout << "on_read: boost::beast::websocket::error::closed received" << std::endl;
+    _connected = false;
     return;
-
-  std::cout << "disconnect 1\n";
-//  _ws.close(websocket::close_code::normal); // ?? where
-  std::cout << "disconnect 2\n";
-  _ioc.reset();
-  std::cout << "disconnect 3\n";
-  _ioc.stop();
-  std::cout << "disconnect 4\n";
-  _ws_thread.join();
-  std::cout << "disconnect 5\n";
-
-  _connected = false;
-}
-
-void kiwisdr_impl::set_rx_parameters(const std::string& mode,
-                                     int low_cut_Hz,
-                                     int high_cut_Hz,
-                                     double freq_kHz) {
-  gr::thread::scoped_lock lock(d_setlock);
-  _rx_parameters = rx_parameters{mode, low_cut_Hz, high_cut_Hz, freq_kHz};
-  _iq_mode       = (mode == "iq");
-  // TODO: _ioc.post(...);
-  std::cout << "#################### set_rx_parameters "
-            << mode << " "
-            << low_cut_Hz << " "
-            << high_cut_Hz << " "
-            << freq_kHz << "####################" << std::endl;
-  _strand.post(boost::bind(&kiwisdr_impl::ws_async_write,
-                           this,
-                           str(_fmt["mod"] % mode % low_cut_Hz % high_cut_Hz % freq_kHz)));
-//  ws_async_write(str(_fmt["mod"] % mode % low_cut_Hz % high_cut_Hz % freq_kHz));
-}
-
-std::string kiwisdr_impl::make_uri(const std::string& what) const {
-  auto const tnow = std::chrono::system_clock::now();
-  const time_t t0 = std::chrono::system_clock::to_time_t(tnow);
-  return "/" + boost::lexical_cast<std::string>(t0) + "/" + what;
-}
-
-void kiwisdr_impl::ws_async_read() {
-//  std::cout << "ws_async_read\n";
-  _ws.async_read(_ws_buffer,
-                 boost::asio::bind_executor(_strand,
-                                            boost::bind(&kiwisdr_impl::on_read,
-                                                        this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
-                                                        boost::asio::placeholders::error,
-                                                        boost::asio::placeholders::bytes_transferred)));
-}
-
-void kiwisdr_impl::ws_async_write(const std::string& msg) {
-  std::cout << "ws_async_write '" << msg << "'\n";
-  const bool not_write_in_progress = _ws_write_queue.empty();
-
-  _ws_write_queue.push_back(msg);
-
-  if (not_write_in_progress) {
-    _ws.async_write(boost::asio::buffer(_ws_write_queue.front().data(),
-                                        _ws_write_queue.front().length()),
-                    boost::asio::bind_executor(_strand,
-                                               boost::bind(&kiwisdr_impl::on_write,
-                                                           this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
-                                                           boost::asio::placeholders::error,
-                                                           boost::asio::placeholders::bytes_transferred)));
   }
-}
-
-
-void kiwisdr_impl::on_write(boost::system::error_code ec,
-                           std::size_t bytes_transferred) {
-  std::cout << "on_write: bytes_transferred= " << bytes_transferred << " ec= " << ec << std::endl;
-  gr::thread::scoped_lock lock(d_setlock);
-  _ws_write_queue.pop_front();
-  if (!_ws_write_queue.empty()) {
-    _ws.async_write(boost::asio::buffer(_ws_write_queue.front().data(),
-                                        _ws_write_queue.front().length()),
-                    boost::asio::bind_executor(_strand,
-                                               boost::bind(&kiwisdr_impl::on_write,
-                                                           this, // shared_from_this() returns sptr of kiwisdr instead of kiwisdr_impl!
-                                                           boost::asio::placeholders::error,
-                                                           boost::asio::placeholders::bytes_transferred)));
+  if (ec) {
+    std::cout << "on_read: error " << ec << " " << ec.message() << std::endl;
+    return;
   }
-}
-
-
-void kiwisdr_impl::on_read(boost::system::error_code ec,
-                           std::size_t bytes_transferred) {
-//  std::cout << "on_read: bytes_transferred= " << bytes_transferred << " ec= " << ec << "'\n";
-
   const std::string type = consume_buffer_as_string(3);
+  std::cout << "on_read: type='" << type << "'\n";
   if (type == "MSG") {
     on_message(consume_buffer_as_string());
   } else if (type == "SND") {
@@ -337,12 +337,41 @@ void kiwisdr_impl::on_read(boost::system::error_code ec,
     std::cout << "on_read: unknwon type '" << type << "'\n";
   }
 
+  // make sure we consumed all bytes in the buffer
   assert(boost::asio::buffer_size(_ws_buffer.data()) == 0);
 
-  // to be removed later on
-  //_ws_buffer.consume(bytes_transferred);
+  if (!_connected) {
+    std::cout << "finishing..." << std::endl;
+    // ws_async_close(); does not seem to work for now
+    return;
+  }
 
+  // send a keepalive message every 10 frames
+  _keepalive_counter += 1;
+  if (_keepalive_counter == 10 && _connected) {
+    ws_async_write(str(_fmt["keepalive"]));
+    _keepalive_counter = 0;
+  }
+
+  // get the next packet
   ws_async_read();
+}
+
+std::map<std::string, std::string>
+parse_key_value(const std::string& s) {
+  const std::regex re(
+    "([^\\s]+)" // non-whitespace
+    "="         // literal '='
+    "([^\\s]+)" // non-whitespace
+    "[\\s]*"    // zero or more whitespaces
+    );
+  std::map<std::string, std::string> key_value_map;
+  for (auto i = std::sregex_iterator(s.begin(), s.end(), re),
+          end = std::sregex_iterator(); i != end; ++i) {
+    assert(i->size() == 3);
+    key_value_map[(*i)[1]] = (*i)[2];
+  }
+  return key_value_map;
 }
 
 void kiwisdr_impl::on_message(const std::string& payload) {
@@ -388,19 +417,75 @@ void kiwisdr_impl::on_message(const std::string& payload) {
   }
 }
 
-bool kiwisdr_impl::start() {
-  if (!_connected)
-    connect(_host, _port);
-  auto const tnow = std::chrono::system_clock::now();
-  const time_t t0 = std::chrono::system_clock::to_time_t(tnow);
-  std::cout << "start " << t0 << "\n";
-  return true;
+void kiwisdr_impl::ws_write(const std::string& msg) {
+  boost::system::error_code ec;
+  const size_t n = _ws.write(boost::asio::buffer(msg), ec);
+  std::cout << "ws_write '" << msg << "' n= " << n << " ec= " << ec << " " << ec.message()  << std::endl;
 }
-bool kiwisdr_impl::stop() {
-  std::cout << "stop\n";
-  disconnect();
-  return true;
+
+void kiwisdr_impl::ws_async_write(const std::string& msg) {
+  std::cout << "ws_async_write '" << msg << "'\n";
+  const bool not_write_in_progress = _ws_write_queue.empty();
+
+  _ws_write_queue.push_back(msg);
+
+  if (not_write_in_progress) {
+    _ws.async_write(boost::asio::buffer(
+                      _ws_write_queue.front().data(),
+                      _ws_write_queue.front().length()),
+                    boost::asio::bind_executor(
+                      _strand,
+                      std::bind(
+                        &kiwisdr_impl::on_write,
+                        impl_shared_from_this(),
+                        std::placeholders::_1,
+                        std::placeholders::_2)));
+  }
 }
+
+
+void kiwisdr_impl::on_write(const boost::system::error_code& ec,
+                            std::size_t bytes_transferred) {
+  std::cout << "on_write: bytes_transferred= " << bytes_transferred << " ec= " << ec << " " << ec.message()  << std::endl;
+  gr::thread::scoped_lock lock(d_setlock);
+  if (!_connected) {
+    _ws_write_queue.clear();
+    return;
+  }
+  _ws_write_queue.pop_front();
+  if (!_ws_write_queue.empty()) {
+    _ws.async_write(boost::asio::buffer(
+                      _ws_write_queue.front().data(),
+                      _ws_write_queue.front().length()),
+                    boost::asio::bind_executor(
+                      _strand,
+                      std::bind(&kiwisdr_impl::on_write,
+                                impl_shared_from_this(),
+                                std::placeholders::_1,
+                                std::placeholders::_2)));
+  }
+}
+
+void kiwisdr_impl::ws_async_close() {
+  std::cout << "ws_async_close\n";
+  _ws.async_close(
+    websocket::close_code::normal,
+    boost::asio::bind_executor(
+      _strand,
+      std::bind(
+        &kiwisdr_impl::on_close,
+        impl_shared_from_this(),
+        std::placeholders::_1)));
+}
+
+void kiwisdr_impl::on_close(const boost::system::error_code& ec) {
+  std::cout << "on_close ec=" << ec << " " << ec.message()  << " " << ec.message() << "\n";
+  _ioc.reset();
+  _ioc.stop();
+  _ws_thread.join();
+  std::cout << "on_close: finished\n";
+}
+
 
 } /* namespace kiwisdr */
 } /* namespace gr */

@@ -144,7 +144,7 @@ find_package(Doxygen)
 set(GR_REQUIRED_COMPONENTS
   RUNTIME
   VOLK)
-find_package(Gnuradio "3.7.2" REQUIRED)
+find_package(Gnuradio "3.7" REQUIRED)
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 include(GrVersion)
 
