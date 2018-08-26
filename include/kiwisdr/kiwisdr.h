@@ -38,6 +38,8 @@ class KIWISDR_API kiwisdr : virtual public gr::block
   public:
   typedef boost::shared_ptr<kiwisdr> sptr;
 
+  virtual ~kiwisdr() {std::cout << "kiwisdr::~kiwisdr" << std::endl; }
+
   /*!
    * \brief Return a shared_ptr to a new instance of kiwisdr::kiwisdr.
    *

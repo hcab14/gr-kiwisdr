@@ -81,6 +81,8 @@
     <optional>
       #if $mod() != 'iq'
       1
+      #else
+      0
       #end if
     </optional>
   </source>
@@ -91,6 +93,8 @@
     <optional>
       #if $mod() == 'iq'
       1
+      #else
+      0
       #end if
     </optional>
   </source>

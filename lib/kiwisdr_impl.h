@@ -21,7 +21,7 @@
 #ifndef INCLUDED_KIWISDR_KIWISDR_IMPL_H
 #define INCLUDED_KIWISDR_KIWISDR_IMPL_H
 
-#define BOOST_ASIO_ENABLE_HANDLER_TRACKING
+// #define BOOST_ASIO_ENABLE_HANDLER_TRACKING
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -31,6 +31,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/format.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <functional>
@@ -99,18 +100,14 @@ private:
   boost::asio::io_context::strand _strand;
   tcp::resolver                   _resolver;
   websocket::stream<tcp::socket>  _ws;
-
-  gr::thread::condition_variable _ws_cond_wait;
-  gr::thread::mutex              _ws_mutex;
+  gr::thread::condition_variable _ws_cond_wait_data;
+  gr::thread::condition_variable _ws_cond_wait_close;
   gr::thread::thread             _ws_thread;
-
   boost::beast::flat_buffer      _ws_buffer;
   std::vector<std::uint8_t>      _snd_buffer;
-
-  std::deque<std::string>       _ws_write_queue;
-
-  bool _connected;
-  int  _keepalive_counter;
+  std::deque<std::string>        _ws_write_queue;
+  std::atomic<bool>              _connected;
+  size_t                         _keepalive_counter;
 
   std::string _host;
   std::string _port;
@@ -119,8 +116,6 @@ private:
   std::string _password;
 
   std::map<std::string, std::string> _msg;
-  // double _audio_rate;
-  // double _sample_rate;
 
   std::map<const std::string, boost::format> _fmt;
 
@@ -171,6 +166,7 @@ private:
   boost::shared_ptr<kiwisdr_impl> impl_shared_from_this() {
     return boost::dynamic_pointer_cast<kiwisdr_impl>(shared_from_this());
   }
+
   virtual bool connect(const std::string& host,
                        const std::string& port);
 
