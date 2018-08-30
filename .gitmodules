@@ -1,0 +1,6 @@
+[submodule "pkg/asio"]
+	path = pkg/asio
+	url = https://github.com/boostorg/asio.git
+[submodule "pkg/beast"]
+	path = pkg/beast
+	url = https://github.com/boostorg/beast.git

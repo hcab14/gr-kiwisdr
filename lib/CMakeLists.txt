@@ -27,6 +27,7 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
 list(APPEND kiwisdr_sources
+    kiwi_ws_client.cc
     kiwisdr_impl.cc
 )
 

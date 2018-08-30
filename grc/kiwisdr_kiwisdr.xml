@@ -4,8 +4,8 @@
   <key>kiwisdr_kiwisdr</key>
   <category>[kiwisdr]</category>
   <import>import kiwisdr</import>
-  <make>kiwisdr.kiwisdr($host, $port)</make>
-  <callback>set_rx_parameters($mod,$low_cut_Hz,$high_cut_Hz,$rx_freq_kHz)</callback>
+  <make>kiwisdr.kiwisdr($host, $port,$rx_freq_kHz,$low_cut_Hz,$high_cut_Hz)</make>
+  <callback>set_rx_parameters($rx_freq_kHz,$low_cut_Hz,$high_cut_Hz)</callback>
 
   <param>
     <name>Host name</name>
@@ -24,18 +24,18 @@
     <key>mod</key>
     <value>iq</value>
     <type>string</type>
-    <option>
-      <name>AM</name><key>am</key>
-    </option>
-    <option>
-      <name>USB</name><key>usb</key>
-    </option>
-    <option>
-      <name>LSB</name><key>lsb</key>
-    </option>
-    <option>
-      <name>FM</name><key>fm</key>
-    </option>
+    <!-- <option> -->
+    <!--   <name>AM</name><key>am</key> -->
+    <!-- </option> -->
+    <!-- <option> -->
+    <!--   <name>USB</name><key>usb</key> -->
+    <!-- </option> -->
+    <!-- <option> -->
+    <!--   <name>LSB</name><key>lsb</key> -->
+    <!-- </option> -->
+    <!-- <option> -->
+    <!--   <name>FM</name><key>fm</key> -->
+    <!-- </option> -->
     <option>
       <name>IQ</name><key>iq</key>
     </option>
@@ -78,24 +78,24 @@
     <name>IQ</name>
     <type>complex</type>
     <!-- <vlen>512</vlen> -->
-    <optional>
-      #if $mod() != 'iq'
-      1
-      #else
-      0
-      #end if
-    </optional>
+    <!-- <optional> -->
+    <!--   #if $mod() != 'iq' -->
+    <!--   1 -->
+    <!--   #else -->
+    <!--   0 -->
+    <!--   #end if -->
+    <!-- </optional> -->
   </source>
-  <source>
-    <name>Real</name>
-    <type>f32</type>
-    <!-- <vlen>512</vlen> -->
-    <optional>
-      #if $mod() == 'iq'
-      1
-      #else
-      0
-      #end if
-    </optional>
-  </source>
+  <!-- <source> -->
+  <!--   <name>Real</name> -->
+  <!--   <type>f32</type> -->
+  <!--   <!-\- <vlen>512</vlen> -\-> -->
+  <!--   <optional> -->
+  <!--     #if $mod() == 'iq' -->
+  <!--     1 -->
+  <!--     #else -->
+  <!--     0 -->
+  <!--     #end if -->
+  <!--   </optional> -->
+  <!-- </source> -->
 </block>
