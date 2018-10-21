@@ -2,11 +2,35 @@
 ----
 
 ## Overview
-Gnuradio KiwiSDR client based on [https://github.com/hcab14/kiwiclient](https://github.com/hcab14/kiwiclient)
+
+Gnuradio [KiwiSDR](http://kiwisdr.com/) client using the
+[boost.beast](https://www.boost.org/doc/libs/master/libs/beast/doc/html/index.html)
+websocket library
+
 
 ## Requirements
-* c++-11 compiler
-* boost >= 1.67 (boost.beast)
+
+* C++-11 compiler
+* gnuradio 3.7
+* boost >= 1.65 (may or may not work with earlier boost versions)
+
+
+## Installation
+
+Do not forget to use the option --recurse-submodules
+
+    git clone --recurse-submodules https://github.com/hcab14/gr-kiwisdr.git
+    cd gr-kiwisdr
+    cmake ../
+    make install
+
+
+## Limitations
+
+* Only IQ mode is supported for now
+* Missing KiwiSDR configuration options (user,pw,AGC,...)
+* May not work with older boost versions distributed with gnuradio packages
+
 
 ## Usage
 This is the kiwisdr-write-a-block package meant as a guide to building
