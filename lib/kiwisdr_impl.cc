@@ -63,7 +63,11 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _last_snd_header()
   , _last_gnss_timestamp()
   , _gnss_tag_done(false)
-  , _id(pmt::string_to_symbol(_host+":"+_port)) {}
+  , _id(pmt::mp(_host+":"+_port))
+{
+    GR_LOG_DECLARE_LOGPTR(d_logger);
+    GR_LOG_ASSIGN_LOGPTR(d_logger, "kiwisdr");
+}
 
 // virtual destructor.
 kiwisdr_impl::~kiwisdr_impl() {}
@@ -92,10 +96,10 @@ int kiwisdr_impl::general_work(int noutput_items,
   std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
   int header_length = sizeof(snd_info);
   //    insert a tag with the RSSI value (dB)
-  add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::from_double(snd_info.rssi()), _id);
+  add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
 
   if (snd_info.seq() - _last_snd_header.seq() != 1) {
-    GR_WARN(d_logger, "dropped packet")
+    GR_LOG_WARN(d_logger, "dropped packet");
   }
   _last_snd_header = snd_info;
 
@@ -105,11 +109,11 @@ int kiwisdr_impl::general_work(int noutput_items,
   header_length += sizeof(gnss_timestamp_header);
   //     insert a stream tag for each new (=not interpolated) gps timestamp
   if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 && !_gnss_tag_done) {
-    GR_INFO(d_logger, str(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)"
-                                        % snd_info.seq()
-                                        % snd_info.rssi(),
-                                        % gnss_timestamp.as_double()
-                                        % gnss_timestamp.last_gps_solution())));
+    GR_LOG_DEBUG(d_logger,(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)")
+                           % snd_info.seq()
+                           % snd_info.rssi()
+                           % gnss_timestamp.as_double()
+                           % gnss_timestamp.last_gps_solution()));
     // taken from gr-uhd/lib/usrp_source_impl.cc
     pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
                                            pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
@@ -140,7 +144,7 @@ int kiwisdr_impl::general_work(int noutput_items,
 }
 
 bool kiwisdr_impl::start() {
-  GR_INFO(d_logger, "kiwisdr_impl::start");
+  GR_LOG_DEBUG(d_logger, "kiwisdr_impl::start");
   gr::thread::scoped_lock lock(d_setlock);
   if (_ws_client_ptr)
     return false;
@@ -151,7 +155,7 @@ bool kiwisdr_impl::start() {
   return true;
 }
 bool kiwisdr_impl::stop() {
-  GR_INFO(d_logger, "kiwisdr_impl::stop");
+  GR_LOG_DEBUG(d_logger, "kiwisdr_impl::stop");
   gr::thread::scoped_lock lock(d_setlock);
   if (!_ws_client_ptr)
     return false;

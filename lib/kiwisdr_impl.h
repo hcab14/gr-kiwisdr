@@ -40,8 +40,8 @@ public:
   }
   uint8_t  flags() const { return _flags; }
   uint32_t seq()  const { return _seq; }
-  float    rssi() const { return 0.1f*((uint16_t(_smeter[0]) << 8) +
-                                        uint16_t(_smeter[1])) - 127.0f; }
+  double   rssi() const { return 0.1f*((uint16_t(_smeter[0]) << 8) +
+                                       uint16_t(_smeter[1])) - 127.0f; }
 private:
   uint8_t  _flags;
   uint32_t _seq;
