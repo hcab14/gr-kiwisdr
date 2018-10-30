@@ -24,7 +24,9 @@
 
 #include <cstdlib>
 
+#include <boost/format.hpp>
 #include <gnuradio/io_signature.h>
+#include <gnuradio/logger.h>
 #include <volk/volk.h>
 
 #include "kiwisdr_impl.h"
@@ -56,10 +58,12 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _msg()
   , _host(host)
   , _port(port)
-  , _rx_parameters{freq_kHz, low_cut_Hz, high_cut_Hz} {}
+  , _rx_parameters{freq_kHz, low_cut_Hz, high_cut_Hz}
+  , _last_snd_header()
+  , _last_gnss_timestamp() {}
 
 // virtual destructor.
-kiwisdr_impl::~kiwisdr_impl() {std::cout << "kiwisdr_impl::~kiwisdr_impl" << std::endl; }
+kiwisdr_impl::~kiwisdr_impl() {}
 
 
 int kiwisdr_impl::general_work(int noutput_items,
@@ -78,35 +82,33 @@ int kiwisdr_impl::general_work(int noutput_items,
   if (!_ws_client_ptr->get_cond().timed_wait(lock2, boost::posix_time::milliseconds(10))) // timeout
     return 0;
 
-  std::cout << "general_work " << noutput_items << std::endl;
-
   std::vector<std::uint8_t> const& snd_buffer = _ws_client_ptr->get_snd_buffer();
 
   // (1) decode snd_info_header
   snd_info_header snd_info;
   std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
   int header_length = sizeof(snd_info);
-  std::cout << "SND: seq= " << snd_info.seq() << " RSSI= " << snd_info.rssi() << "\n";
+  if (snd_info.seq() - _last_snd_header.seq() != 1) {
+    GR_WARN(d_logger, "dropped packet")
+  }
+  _last_snd_header = snd_info;
 
   // (2) decode gnss timestamp header (IQ mode only)
   gnss_timestamp_header gnss_timestamp;
   std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
   header_length += sizeof(gnss_timestamp_header);
-  std::cout << "SND: gpssec= " << gnss_timestamp.gpssec()
-            << " gpsnsec= " << gnss_timestamp.gpsnsec()
-            << " last_gnss_solution= " << gnss_timestamp.last_gps_solution() << " | ";
-
-  std::copy(snd_buffer.begin() + sizeof(snd_info_header),
-            snd_buffer.begin() + sizeof(snd_info_header) + sizeof(gnss_timestamp_header),
-            std::ostream_iterator<int>(std::cout, " "));
-  std::cout << std::endl;
+  GR_INFO(d_logger, str(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)"
+                                      % snd_info.seq()
+                                      % snd_info.rssi(),
+                                      % gnss_timestamp.as_double()
+                                      % gnss_timestamp.last_gps_solution())));
+  _last_gnss_timestamp = gnss_timestamp;
   assert(snd_buffer.size() > header_length);
 
   auto const n_samples = (snd_buffer.size() - header_length) >> 2;
   assert(n_samples <= noutput_items);
   assert((snd_buffer.size() - header_length) % 2 == 0);
   noutput_items = (snd_buffer.size() - header_length) >> 1;
-  std::cout << "general_work(2) " << noutput_items << std::endl;
 
   // big-endian -> little endian conversion
   volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), noutput_items);
@@ -118,13 +120,12 @@ int kiwisdr_impl::general_work(int noutput_items,
   assert(noutput_items %2 == 0);
   noutput_items >>= 1;
 
-  std::cout << "general work exit" << std::endl;
   // Tell runtime system how many output items we produced.
   return noutput_items;
 }
 
 bool kiwisdr_impl::start() {
-  std::cout << "kiwisdr_impl::start" << std::endl;
+  GR_INFO(d_logger, "kiwisdr_impl::start");
   gr::thread::scoped_lock lock(d_setlock);
   if (_ws_client_ptr)
     return false;
@@ -135,17 +136,13 @@ bool kiwisdr_impl::start() {
   return true;
 }
 bool kiwisdr_impl::stop() {
-  std::cout << "kiwisdr_impl::stop" << std::endl;
+  GR_INFO(d_logger, "kiwisdr_impl::stop");
   gr::thread::scoped_lock lock(d_setlock);
   if (!_ws_client_ptr)
     return false;
 
-  std::cout << "kiwisdr_impl::stop A" << std::endl;
   _ws_client_ptr->disconnect();
-  std::cout << "kiwisdr_impl::stop B" << std::endl;
   _ws_client_ptr = nullptr;
-  std::cout << "kiwisdr_impl::stop C" << std::endl;
-
   return true;
 }
 

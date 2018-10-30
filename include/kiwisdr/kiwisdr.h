@@ -38,7 +38,7 @@ class KIWISDR_API kiwisdr : virtual public gr::block
   public:
   typedef boost::shared_ptr<kiwisdr> sptr;
 
-  virtual ~kiwisdr() {std::cout << "kiwisdr::~kiwisdr" << std::endl; }
+  virtual ~kiwisdr() {}
 
   /*!
    * \brief Return a shared_ptr to a new instance of kiwisdr::kiwisdr.
@@ -53,12 +53,6 @@ class KIWISDR_API kiwisdr : virtual public gr::block
                    double freq_kHz = 10000,
                    int low_cut_Hz  = -6000,
                    int high_cut_Hz =  6000);
-
-  // virtual bool start() = 0;
-  // virtual bool stop() = 0;
-
-  // virtual bool connect(const std::string& host,
-  //                      const std::string& port) = 0;
 
   virtual std::string get_client_public_ip() const = 0;
   virtual int         get_rx_chans()         const = 0;

@@ -51,46 +51,6 @@ namespace websocket = boost::beast::websocket;
 namespace gr {
 namespace kiwisdr {
 
-class snd_info_header {
-public:
-  snd_info_header()
-    : _flags(0)
-    , _seq(0)
-    , _smeter{0,0} {
-    static_assert(sizeof(snd_info_header) == 7,
-                  "snd_info_header has wrong packed size");
-  }
-  uint8_t  flags() const { return _flags; }
-  uint32_t seq()  const { return _seq; }
-  float    rssi() const { return 0.1f*((uint16_t(_smeter[0]) << 8) +
-                                        uint16_t(_smeter[1])) - 127.0f; }
-private:
-  uint8_t  _flags;
-  uint32_t _seq;
-  uint8_t  _smeter[2];
-} __attribute__((__packed__)) ;
-
-class gnss_timestamp_header {
-public:
-  gnss_timestamp_header()
-    : _last_gps_solution(0)
-    , _dummy(0)
-    , _gpssec(0)
-    , _gpsnsec(0) {
-    static_assert(sizeof(gnss_timestamp_header) == 10,
-                  "gnss_timestamp_header has wrong packed size");
-  }
-  int      last_gps_solution() const { return _last_gps_solution; }
-  uint32_t gpssec()            const { return _gpssec; }
-  uint32_t gpsnsec()           const { return _gpsnsec; }
-
-private:
-  uint8_t  _last_gps_solution;
-  uint8_t  _dummy;
-  uint32_t _gpssec;
-  uint32_t _gpsnsec;
-} __attribute__((__packed__)) ;
-
 class kiwi_ws_client : public std::enable_shared_from_this<kiwi_ws_client> {
 public:
   kiwi_ws_client();
