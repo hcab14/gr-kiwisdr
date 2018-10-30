@@ -69,6 +69,9 @@ private:
   uint32_t _gpsnsec;
 } __attribute__((__packed__)) ;
 
+static const pmt::pmt_t TIME_KEY = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
+static const pmt::pmt_t RSSI_KEY = pmt::string_to_symbol("rssi");
+
 class kiwisdr_impl : public kiwisdr
 {
 private:
@@ -82,7 +85,8 @@ private:
 
   snd_info_header       _last_snd_header;
   gnss_timestamp_header _last_gnss_timestamp;
-
+  bool                  _gnss_tag_done;
+  pmt::pmt_t            _id;
 public:
   kiwisdr_impl(std::string const &host,
                std::string const &port,

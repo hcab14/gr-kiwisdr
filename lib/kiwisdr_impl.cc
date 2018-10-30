@@ -27,6 +27,7 @@
 #include <boost/format.hpp>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/logger.h>
+#include <gnuradio/tags.h>
 #include <volk/volk.h>
 
 #include "kiwisdr_impl.h"
@@ -60,7 +61,9 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _port(port)
   , _rx_parameters{freq_kHz, low_cut_Hz, high_cut_Hz}
   , _last_snd_header()
-  , _last_gnss_timestamp() {}
+  , _last_gnss_timestamp()
+  , _gnss_tag_done(false)
+  , _id(pmt::string_to_symbol(_host+":"+_port)) {}
 
 // virtual destructor.
 kiwisdr_impl::~kiwisdr_impl() {}
@@ -88,6 +91,9 @@ int kiwisdr_impl::general_work(int noutput_items,
   snd_info_header snd_info;
   std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
   int header_length = sizeof(snd_info);
+  //    insert a tag with the RSSI value (dB)
+  add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::from_double(snd_info.rssi()), _id);
+
   if (snd_info.seq() - _last_snd_header.seq() != 1) {
     GR_WARN(d_logger, "dropped packet")
   }
@@ -97,11 +103,20 @@ int kiwisdr_impl::general_work(int noutput_items,
   gnss_timestamp_header gnss_timestamp;
   std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
   header_length += sizeof(gnss_timestamp_header);
-  GR_INFO(d_logger, str(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)"
-                                      % snd_info.seq()
-                                      % snd_info.rssi(),
-                                      % gnss_timestamp.as_double()
-                                      % gnss_timestamp.last_gps_solution())));
+  //     insert a stream tag for each new (=not interpolated) gps timestamp
+  if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 && !_gnss_tag_done) {
+    GR_INFO(d_logger, str(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)"
+                                        % snd_info.seq()
+                                        % snd_info.rssi(),
+                                        % gnss_timestamp.as_double()
+                                        % gnss_timestamp.last_gps_solution())));
+    // taken from gr-uhd/lib/usrp_source_impl.cc
+    pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
+                                           pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
+    add_item_tag(0, nitems_written(0), TIME_KEY, val, _id);
+  }
+  _gnss_tag_done = (gnss_timestamp.last_gps_solution() == 0);
+
   _last_gnss_timestamp = gnss_timestamp;
   assert(snd_buffer.size() > header_length);
 
@@ -110,10 +125,10 @@ int kiwisdr_impl::general_work(int noutput_items,
   assert((snd_buffer.size() - header_length) % 2 == 0);
   noutput_items = (snd_buffer.size() - header_length) >> 1;
 
-  // big-endian -> little endian conversion
+  // (2) big-endian -> little endian conversion
   volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), noutput_items);
 
-  // uint16_t -> float conversion
+  // (3) uint16_t -> float conversion
   float* out = (float*)(output_items[0]);
   volk_16i_s32f_convert_32f(out, (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), noutput_items);
 
