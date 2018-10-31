@@ -40,6 +40,7 @@
 #include <memory>
 #include <vector>
 #include <deque>
+#include <queue>
 
 #include <gnuradio/thread/thread.h>
 
@@ -56,6 +57,8 @@ public:
   kiwi_ws_client();
   virtual ~kiwi_ws_client();
 
+  typedef std::queue<std::vector<std::uint8_t> > ws_data_queue_type;
+
   // change rx parameters
   void set_rx_parameters(kiwi_rx_parameters const&);
 
@@ -66,9 +69,10 @@ public:
   void disconnect();
 
   gr::thread::condition_variable&  get_cond() { return _ws_cond_wait_data; }
-  std::vector<std::uint8_t> const& get_snd_buffer() const { return _snd_buffer; }
 
   gr::thread::mutex &mutex() { return _mutex; }
+  ws_data_queue_type& data_queue() { return _ws_data_queue; }
+
 protected:
   // returns /{unix time seconds}/what
   std::string make_uri(std::string const &what) const;
@@ -127,7 +131,7 @@ private:
   gr::thread::condition_variable  _ws_cond_wait_data;
   gr::thread::thread              _ws_thread;
   boost::beast::flat_buffer       _ws_buffer;
-  std::vector<std::uint8_t>       _snd_buffer;
+  ws_data_queue_type              _ws_data_queue;
   std::deque<std::string>         _ws_write_queue;
   std::atomic<bool>               _connected;
   std::atomic<bool>               _disconnecting;

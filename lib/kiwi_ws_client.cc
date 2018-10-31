@@ -36,7 +36,7 @@ kiwi_ws_client::kiwi_ws_client()
   , _ws_cond_wait_data()
   , _ws_thread()
   , _ws_buffer()
-  , _snd_buffer()
+  , _ws_data_queue()
   , _ws_write_queue()
   , _connected(false)
   , _disconnecting(false)
@@ -260,10 +260,11 @@ void kiwi_ws_client::on_read(boost::system::error_code const &ec,
   } else if (type == "SND") {
     gr::thread::scoped_lock lock(_mutex);
     size_t const n_bytes = boost::asio::buffer_size(_ws_buffer.data());
-    _snd_buffer.resize(n_bytes);
 
     auto const p0 = boost::asio::buffer_cast<uint8_t const*>(boost::beast::buffers_front(_ws_buffer.data()));
-    std::copy(p0, p0+n_bytes, _snd_buffer.begin());
+    std::vector<uint8_t> snd_buffer(n_bytes);
+    std::copy(p0, p0+n_bytes, snd_buffer.begin());
+    _ws_data_queue.emplace(snd_buffer);
 
     _ws_cond_wait_data.notify_one();
     _ws_buffer.consume(n_bytes);

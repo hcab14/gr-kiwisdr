@@ -66,7 +66,7 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _id(pmt::mp(_host+":"+_port))
 {
     GR_LOG_DECLARE_LOGPTR(d_logger);
-    GR_LOG_ASSIGN_LOGPTR(d_logger, "kiwisdr");
+    GR_LOG_ASSIGN_LOGPTR(d_logger, "kiwisdr@"+_host+":"+_port);
 }
 
 // virtual destructor.
@@ -79,68 +79,82 @@ int kiwisdr_impl::general_work(int noutput_items,
                                gr_vector_void_star& output_items)
 {
   gr::thread::scoped_lock lock(d_setlock);
+  int produced_output_items = 0;
 
   if (!_ws_client_ptr) {
     usleep(10);
-    return 0;
+    return produced_output_items;
   }
 
   gr::thread::scoped_lock lock2(_ws_client_ptr->mutex());
   if (!_ws_client_ptr->get_cond().timed_wait(lock2, boost::posix_time::milliseconds(10))) // timeout
-    return 0;
+    return produced_output_items;
 
-  std::vector<std::uint8_t> const& snd_buffer = _ws_client_ptr->get_snd_buffer();
+  gr_complex* out = (gr_complex*)(output_items[0]);
 
-  // (1) decode snd_info_header
-  snd_info_header snd_info;
-  std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
-  int header_length = sizeof(snd_info);
-  //    insert a tag with the RSSI value (dB)
-  add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
-
-  if (snd_info.seq() - _last_snd_header.seq() != 1) {
-    GR_LOG_WARN(d_logger, "dropped packet");
-  }
-  _last_snd_header = snd_info;
-
-  // (2) decode gnss timestamp header (IQ mode only)
+  snd_info_header       snd_info;
   gnss_timestamp_header gnss_timestamp;
-  std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
-  header_length += sizeof(gnss_timestamp_header);
-  //     insert a stream tag for each new (=not interpolated) gps timestamp
-  if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 && !_gnss_tag_done) {
-    GR_LOG_DEBUG(d_logger,(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)")
-                           % snd_info.seq()
-                           % snd_info.rssi()
-                           % gnss_timestamp.as_double()
-                           % gnss_timestamp.last_gps_solution()));
-    // taken from gr-uhd/lib/usrp_source_impl.cc
-    pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
-                                           pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
-    add_item_tag(0, nitems_written(0), TIME_KEY, val, _id);
+
+  std::size_t const full_header_length  = sizeof(snd_info) + sizeof(gnss_timestamp);
+  assert(snd_buffer.size() >= full_header_length);
+
+  while (!_ws_client_ptr->data_queue().empty() && produced_output_items < noutput_items) {
+    std::vector<std::uint8_t> const& snd_buffer = _ws_client_ptr->data_queue().front();
+    assert((snd_buffer.size() - header_length) % 2 == 0);
+
+    std::size_t const num_floats = (snd_buffer.size() - full_header_length) >> 1;
+    assert(num_float % 2 == 0);
+
+    std::size_t const num_complex_samples = num_floats >> 1;
+    // for now we do not handle the following case
+    assert(num_complex_samples < noutput_items);
+
+    // do not overflow the output
+    if (produced_output_items + ((snd_buffer.size()-full_header_length)>>2) >= noutput_items)
+      break;
+
+    // (1) decode snd_info_header
+    std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
+    int header_length = sizeof(snd_info);
+    //    insert a tag with the RSSI value (dB)
+    add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
+
+    if (snd_info.seq() - _last_snd_header.seq() != 1)
+      GR_LOG_WARN(d_logger, "dropped packet");
+
+    _last_snd_header = snd_info;
+
+    // (2) decode gnss timestamp header (IQ mode only)
+    std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
+    header_length += sizeof(gnss_timestamp_header);
+    //     insert a stream tag for each new (=not interpolated) gps timestamp
+    if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 && !_gnss_tag_done) {
+      GR_LOG_DEBUG(d_logger,(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)")
+                             % snd_info.seq()
+                             % snd_info.rssi()
+                             % gnss_timestamp.as_double()
+                             % gnss_timestamp.last_gps_solution()));
+      // taken from gr-uhd/lib/usrp_source_impl.cc
+      pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
+                                             pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
+      add_item_tag(0, nitems_written(0), TIME_KEY, val, _id);
+    }
+    _gnss_tag_done       = (gnss_timestamp.last_gps_solution() == 0);
+    _last_gnss_timestamp = gnss_timestamp;
+
+    // (2) big-endian -> little endian conversion
+    volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
+
+    // (3) uint16_t -> float conversion
+    volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
+
+    produced_output_items += num_complex_samples;
+    out                   += num_complex_samples;
+
+    _ws_client_ptr->data_queue().pop();
   }
-  _gnss_tag_done = (gnss_timestamp.last_gps_solution() == 0);
-
-  _last_gnss_timestamp = gnss_timestamp;
-  assert(snd_buffer.size() > header_length);
-
-  auto const n_samples = (snd_buffer.size() - header_length) >> 2;
-  assert(n_samples <= noutput_items);
-  assert((snd_buffer.size() - header_length) % 2 == 0);
-  noutput_items = (snd_buffer.size() - header_length) >> 1;
-
-  // (2) big-endian -> little endian conversion
-  volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), noutput_items);
-
-  // (3) uint16_t -> float conversion
-  float* out = (float*)(output_items[0]);
-  volk_16i_s32f_convert_32f(out, (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), noutput_items);
-
-  assert(noutput_items %2 == 0);
-  noutput_items >>= 1;
-
   // Tell runtime system how many output items we produced.
-  return noutput_items;
+  return produced_output_items;
 }
 
 bool kiwisdr_impl::start() {
