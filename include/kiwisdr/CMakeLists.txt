@@ -23,5 +23,6 @@
 ########################################################################
 install(FILES
   api.h
-  kiwisdr.h DESTINATION include/kiwisdr
+  kiwisdr.h
+    kiwi_wav_source.h DESTINATION include/kiwisdr
   )

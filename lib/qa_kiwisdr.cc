@@ -27,11 +27,13 @@
  */
 
 #include "qa_kiwisdr.h"
+#include "qa_kiwi_wav_source.h"
 
 CppUnit::TestSuite *
 qa_kiwisdr::suite()
 {
   CppUnit::TestSuite *s = new CppUnit::TestSuite("kiwisdr");
+  s->addTest(gr::kiwisdr::qa_kiwi_wav_source::suite());
 
   return s;
 }

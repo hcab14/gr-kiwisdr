@@ -19,5 +19,6 @@
 # Boston, MA 02110-1301, USA.
 
 install(FILES
-    kiwisdr_kiwisdr.xml DESTINATION share/gnuradio/grc/blocks
+    kiwisdr_kiwisdr.xml
+    kiwisdr_kiwi_wav_source.xml DESTINATION share/gnuradio/grc/blocks
 )

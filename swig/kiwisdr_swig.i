@@ -9,8 +9,11 @@
 
 %{
 #include "kiwisdr/kiwisdr.h"
+#include "kiwisdr/kiwi_wav_source.h"
 %}
 
 
 %include "kiwisdr/kiwisdr.h"
 GR_SWIG_BLOCK_MAGIC2(kiwisdr, kiwisdr);
+%include "kiwisdr/kiwi_wav_source.h"
+GR_SWIG_BLOCK_MAGIC2(kiwisdr, kiwi_wav_source);

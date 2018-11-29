@@ -29,6 +29,7 @@ link_directories(${Boost_LIBRARY_DIRS})
 list(APPEND kiwisdr_sources
     kiwi_ws_client.cc
     kiwisdr_impl.cc
+    kiwi_wav_source_impl.cc
 )
 
 set(kiwisdr_sources "${kiwisdr_sources}" PARENT_SCOPE)
@@ -63,6 +64,7 @@ include_directories(${CPPUNIT_INCLUDE_DIRS})
 list(APPEND test_kiwisdr_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/test_kiwisdr.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwisdr.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwi_wav_source.cc
 )
 
 add_executable(test-kiwisdr ${test_kiwisdr_sources})
