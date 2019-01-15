@@ -31,4 +31,5 @@ except ImportError:
 	pass
 
 # import any pure python here
+from align_streams import align_streams
 #

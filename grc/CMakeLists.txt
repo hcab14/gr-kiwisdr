@@ -20,5 +20,6 @@
 
 install(FILES
     kiwisdr_kiwisdr.xml
-    kiwisdr_kiwi_wav_source.xml DESTINATION share/gnuradio/grc/blocks
+    kiwisdr_kiwi_wav_source.xml
+    kiwisdr_align_streams.xml DESTINATION share/gnuradio/grc/blocks
 )

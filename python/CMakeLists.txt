@@ -32,7 +32,7 @@ endif()
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    DESTINATION ${GR_PYTHON_DIR}/kiwisdr
+    align_streams.py DESTINATION ${GR_PYTHON_DIR}/kiwisdr
 )
 
 ########################################################################
@@ -44,3 +44,4 @@ set(GR_TEST_TARGET_DEPS gnuradio-kiwisdr)
 set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
 GR_ADD_TEST(qa_kiwisdr ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwisdr.py)
 GR_ADD_TEST(qa_kiwi_wav_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwi_wav_source.py)
+GR_ADD_TEST(qa_align_streams ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_align_streams.py)

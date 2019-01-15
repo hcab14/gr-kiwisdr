@@ -125,10 +125,21 @@ kiwi_wav_source_impl::work(int noutput_items,
   gr_complex *out = (gr_complex *)output_items[0];
   int nout=0;
   // insert buffered samples from the last call to work
-  for (int i=0; i<_buffer.size(); ++i)
+  if (!_buffer.empty())
+    GR_LOG_INFO(d_logger, str(boost::format("buffer size: %d (%d)") % _buffer.size() % noutput_items));
+
+  for (int i=0; i<_buffer.size() && nout < noutput_items; ++i)
     out[nout++] = _buffer[i];
-  // clear buffer
-  _buffer.clear();
+
+  if (nout == _buffer.size()) {
+    // clear buffer
+    _buffer.clear();
+  } else { // buffer is not empty
+    std::vector<gr_complex> buffer_new(_buffer.size() - nout);
+    std::copy(_buffer.begin()+nout, _buffer.end(), buffer_new.begin());
+    std::swap(_buffer, buffer_new);
+    return nout;
+  }
 
   for (chunk_base c; *_stream && nout < noutput_items; ) {
     _pos = _stream->tellg();
@@ -162,15 +173,15 @@ kiwi_wav_source_impl::work(int noutput_items,
       }
       //     insert a stream tag for each new (=not interpolated) gps timestamp
       if (kiwi.last_gnss_solution() - _last_kiwi_chunk.last_gnss_solution() < 0 && !_gnss_tag_done) {
-        GR_LOG_DEBUG(d_logger,(boost::format("gpssec=%16.9f (%3d)")
-                               % kiwi.as_double()
-                               % kiwi.last_gnss_solution()));
+        // GR_LOG_DEBUG(d_logger,(boost::format("gpssec=%16.9f (%3d)")
+        //                        % kiwi.as_double()
+        //                        % kiwi.last_gnss_solution()));
         // taken from gr-uhd/lib/usrp_source_impl.cc
         pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(kiwi.gpssec()),
-                                             pmt::from_double(1e-9*kiwi.gpsnsec()));
+                                               pmt::from_double(1e-9*kiwi.gpsnsec()));
         add_item_tag(0, nitems_written(0)+nout, TIME_KEY, val, _id);
+        _gnss_tag_done = true;//(kiwi.last_gnss_solution() == 0);
       }
-      _gnss_tag_done   = (kiwi.last_gnss_solution() == 0);
       _last_kiwi_chunk = kiwi;
     } else {
       GR_LOG_WARN(d_logger, str(boost::format("skipping unknown chunk '%s' len=%d") % c.id() % c.size()));

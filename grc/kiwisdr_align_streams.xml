@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<block>
+  <name>align_streams</name>
+  <key>kiwisdr_align_streams</key>
+  <category>[kiwisdr]</category>
+  <import>import kiwisdr</import>
+  <make>kiwisdr.align_streams($num_streams)</make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>num_streams</name>
+    <key>num_streams</key>
+    <value>3</value>
+    <type>int</type>
+  </param>
+
+  <check>$num_streams &eq; 3</check>
+
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+    <nports>$num_streams</nports>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <nports>$num_streams</nports>
+  </source>
+</block>
