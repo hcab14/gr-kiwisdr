@@ -125,8 +125,8 @@ kiwi_wav_source_impl::work(int noutput_items,
   gr_complex *out = (gr_complex *)output_items[0];
   int nout=0;
   // insert buffered samples from the last call to work
-  if (!_buffer.empty())
-    GR_LOG_INFO(d_logger, str(boost::format("buffer size: %d (%d)") % _buffer.size() % noutput_items));
+  // if (!_buffer.empty())
+  //   GR_LOG_INFO(d_logger, str(boost::format("buffer size: %d (%d)") % _buffer.size() % noutput_items));
 
   for (int i=0; i<_buffer.size() && nout < noutput_items; ++i)
     out[nout++] = _buffer[i];
