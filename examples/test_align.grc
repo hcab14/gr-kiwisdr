@@ -105,6 +105,33 @@
     </param>
     <param>
       <key>_coordinate</key>
+      <value>(469, 16)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>fc</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>4820e3</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
       <value>(192, 16)</value>
     </param>
     <param>
@@ -184,171 +211,6 @@
     <param>
       <key>minoutbuf</key>
       <value>0</value>
-    </param>
-    <param>
-      <key>vlen</key>
-      <value>1</value>
-    </param>
-  </block>
-  <block>
-    <key>blocks_delay</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>delay</key>
-      <value>23</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(245, 624)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>blocks_delay_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>num_ports</key>
-      <value>1</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>complex</value>
-    </param>
-    <param>
-      <key>vlen</key>
-      <value>1</value>
-    </param>
-  </block>
-  <block>
-    <key>blocks_delay</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>delay</key>
-      <value>55</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(245, 528)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>blocks_delay_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>num_ports</key>
-      <value>1</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>complex</value>
-    </param>
-    <param>
-      <key>vlen</key>
-      <value>1</value>
-    </param>
-  </block>
-  <block>
-    <key>blocks_delay</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>delay</key>
-      <value>112</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(245, 464)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>blocks_delay_0_1</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>num_ports</key>
-      <value>1</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>complex</value>
     </param>
     <param>
       <key>vlen</key>
@@ -519,6 +381,10 @@
       <value>True</value>
     </param>
     <param>
+      <key>filename</key>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4820000_AB1LD_iq.wav</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(21, 165)</value>
     </param>
@@ -538,10 +404,6 @@
       <key>minoutbuf</key>
       <value>0</value>
     </param>
-    <param>
-      <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4820000_AB1LD_iq.wav</value>
-    </param>
   </block>
   <block>
     <key>kiwisdr_kiwi_wav_source</key>
@@ -560,6 +422,10 @@
     <param>
       <key>_enabled</key>
       <value>True</value>
+    </param>
+    <param>
+      <key>filename</key>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4832000_AB1LD_iq.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -581,10 +447,6 @@
       <key>minoutbuf</key>
       <value>0</value>
     </param>
-    <param>
-      <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4832000_AB1LD_iq.wav</value>
-    </param>
   </block>
   <block>
     <key>kiwisdr_kiwi_wav_source</key>
@@ -605,6 +467,10 @@
       <value>True</value>
     </param>
     <param>
+      <key>filename</key>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4808000_AB1LD_iq.wav</value>
+    </param>
+    <param>
       <key>_coordinate</key>
       <value>(21, 101)</value>
     </param>
@@ -623,10 +489,6 @@
     <param>
       <key>minoutbuf</key>
       <value>0</value>
-    </param>
-    <param>
-      <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190115T145443Z_4808000_AB1LD_iq.wav</value>
     </param>
   </block>
   <block>
@@ -712,7 +574,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>4808e3+12e3</value>
+      <value>fc</value>
     </param>
     <param>
       <key>comment</key>
@@ -935,7 +797,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>4808e3</value>
+      <value>fc-samp_rate</value>
     </param>
     <param>
       <key>comment</key>
@@ -1158,7 +1020,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>4808e3+12e3</value>
+      <value>fc</value>
     </param>
     <param>
       <key>comment</key>
@@ -1170,7 +1032,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>0</value>
+      <value>1</value>
     </param>
     <param>
       <key>fftsize</key>
@@ -1381,7 +1243,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>4808e3+24e3</value>
+      <value>fc+samp_rate</value>
     </param>
     <param>
       <key>comment</key>
@@ -1393,7 +1255,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>0</value>
+      <value>1</value>
     </param>
     <param>
       <key>fftsize</key>
@@ -1601,24 +1463,6 @@
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>blocks_delay_0</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>2</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>blocks_delay_0_0</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>blocks_delay_0_1</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
     <source_block_id>blocks_throttle_0</source_block_id>
     <sink_block_id>blocks_complex_to_float_0</sink_block_id>
     <source_key>0</source_key>
@@ -1668,19 +1512,19 @@
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_0</source_block_id>
-    <sink_block_id>blocks_delay_0_0</sink_block_id>
+    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
     <source_key>0</source_key>
-    <sink_key>0</sink_key>
+    <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_1</source_block_id>
-    <sink_block_id>blocks_delay_0</sink_block_id>
+    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
     <source_key>0</source_key>
-    <sink_key>0</sink_key>
+    <sink_key>2</sink_key>
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_1_0</source_block_id>
-    <sink_block_id>blocks_delay_0_1</sink_block_id>
+    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
