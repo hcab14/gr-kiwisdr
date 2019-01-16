@@ -11,9 +11,10 @@
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
   <param>
-    <name>filename</name>
+    <name>File</name>
     <key>filename</key>
-    <type>string</type>
+    <value></value>
+    <type>file_open</type>
   </param>
 
   <source>

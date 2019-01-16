@@ -17,7 +17,7 @@
     <type>int</type>
   </param>
 
-  <check>$num_streams &eq; 3</check>
+  <check>$num_streams >= 2</check>
 
   <sink>
     <name>in</name>
