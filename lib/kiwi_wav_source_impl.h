@@ -127,6 +127,7 @@ private:
   chunk_fmt  _fmt;
   chunk_kiwi _last_kiwi_chunk;
   std::vector<gr_complex> _buffer;
+  bool       _gnss_tag_sent;
   bool       _gnss_tag_done;
   pmt::pmt_t _id;
 

@@ -48,6 +48,7 @@ kiwi_wav_source_impl::kiwi_wav_source_impl(std::string filename)
   , _fmt()
   , _last_kiwi_chunk()
   , _buffer()
+  , _gnss_tag_sent(false)
   , _gnss_tag_done(false)
   , _id(pmt::mp(_filename))
 {
@@ -62,6 +63,9 @@ kiwi_wav_source_impl::~kiwi_wav_source_impl()
 bool
 kiwi_wav_source_impl::start()
 {
+  _gnss_tag_sent = false;
+  _gnss_tag_done = false;
+
   _buffer.clear();
   _stream = std::make_shared<std::ifstream>(_filename.c_str(), std::ios::binary);
   if (!_stream || !(*_stream)) {
@@ -171,16 +175,24 @@ kiwi_wav_source_impl::work(int noutput_items,
         GR_LOG_ERROR(d_logger, "incomplete kiwi chunk");
         return WORK_DONE;
       }
-      //     insert a stream tag for each new (=not interpolated) gps timestamp
-      if (kiwi.last_gnss_solution() - _last_kiwi_chunk.last_gnss_solution() < 0 && !_gnss_tag_done) {
-        // GR_LOG_DEBUG(d_logger,(boost::format("gpssec=%16.9f (%3d)")
-        //                        % kiwi.as_double()
-        //                        % kiwi.last_gnss_solution()));
-        // taken from gr-uhd/lib/usrp_source_impl.cc
-        pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(kiwi.gpssec()),
-                                               pmt::from_double(1e-9*kiwi.gpsnsec()));
-        add_item_tag(0, nitems_written(0)+nout, TIME_KEY, val, _id);
-        _gnss_tag_done = true;//(kiwi.last_gnss_solution() == 0);
+      // insert a stream tag
+      //  1) at the beginning of the wav file, or
+      //  2) for each new (=not interpolated) gps timestamp
+      if (kiwi.last_gnss_solution() - _last_kiwi_chunk.last_gnss_solution() < 0 || !_gnss_tag_sent) {
+        if (!_gnss_tag_done) {
+          // GR_LOG_DEBUG(d_logger,(boost::format("gpssec=%16.9f (%3d)")
+          //                        % kiwi.as_double()
+          //                        % kiwi.last_gnss_solution()));
+          // taken from gr-uhd/lib/usrp_source_impl.cc
+          pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(kiwi.gpssec()),
+                                                 pmt::from_double(1e-9*kiwi.gpsnsec()));
+          add_item_tag(0, nitems_written(0)+nout, TIME_KEY, val, _id);
+          _gnss_tag_done = true;
+          _gnss_tag_sent = true;
+        }
+        else {
+          _gnss_tag_done = false;
+        }
       }
       _last_kiwi_chunk = kiwi;
     } else {
