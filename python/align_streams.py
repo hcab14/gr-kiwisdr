@@ -35,11 +35,11 @@ class find_offsets(gr.sync_block):
                                in_sig  = gr.py_io_signature(1, -1, num_streams*(np.complex64,)),
                                out_sig = gr.py_io_signature(1, -1, num_streams*(np.complex64,)))
         self._num_streams = num_streams
-        self._tags = [[] for _ in range(num_streams)]
-        self._fs   = 12001*np.ones(num_streams, dtype=np.double) ## default sample rate
-        self._offsets = np.zeros(num_streams, dtype=np.int)
-        self._tags_new = [False for _ in range(num_streams)]
-        self._port_delay = pmt.intern('delay')
+        self._fs          = 12001.1*np.ones(num_streams, dtype=np.double) ## default sample rate
+        self._tags        = [[]    for _ in range(num_streams)]
+        self._tags_new    = [False for _ in range(num_streams)]
+        self._offsets     = np.zeros(num_streams, dtype=np.int)
+        self._port_delay  = pmt.intern('delay')
         self.message_port_register_out(self._port_delay)
         self.set_tag_propagation_policy(gr.TPP_DONT)
 
@@ -59,24 +59,20 @@ class find_offsets(gr.sync_block):
                 self._tags[i] = tags[i][0]
                 self._tags_new[i] = True
         if all(self._tags_new):
-            ## compute differences w.r.t 1st in seconds
-            fd = lambda x,y,fsx,fsy:(x[0]/fsx-y[0]/fsy) - (x[1]-y[1])
-            dd = np.array([fd(self._tags[i], self._tags[0], self._fs[i], self._fs[0])
-                           for i in range(1,self._num_streams)])
-
-            ## differences in samples
-            dds = dd * self._fs[1:]
-
-            ## compute the offsets avoiding negative delays
+            ## compute differences w.r.t 1st in number of samples
+            fd = lambda x,y,fsx,fsy: x[1]-y[1] - (x[0]/fsx-y[0]/fsy)
+            ds = np.array([fd(self._tags[i], self._tags[0], self._fs[i], self._fs[0])
+                           for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
+            ## compute offsets avoiding negative delays
             self._offsets[0]  = 0
-            self._offsets[1:] = np.round(dds)
+            self._offsets[1:] = np.round(ds)
             self._offsets    -= np.min(self._offsets)
-            self._tags_new = [False for _ in range(self._num_streams)]
-
             ## publish the offsets to the message port
             msg_out = pmt.make_dict()
             msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in self._offsets]))
             self.message_port_pub(self._port_delay, msg_out)
+            ## reset the saved tags array
+            self._tags_new = [False for _ in range(self._num_streams)]
 
         ## pass through all data streams
         for i in range(self._num_streams):
@@ -96,9 +92,8 @@ class delay_array(gr.basic_block):
             in_sig=None,
             out_sig=None)
         self._num_streams = num_streams
-        self._delays = [blocks.delay(gr.sizeof_gr_complex, 0) for _ in range(num_streams)]
-
-        self._port_delay = pmt.intern('delay')
+        self._delays      = [blocks.delay(gr.sizeof_gr_complex, 0) for _ in range(num_streams)]
+        self._port_delay  = pmt.intern('delay')
         self.message_port_register_in(self._port_delay)
         self.set_msg_handler(self._port_delay, self.msg_handler_delay)
         self.set_tag_propagation_policy(gr.TPP_DONT)
