@@ -21,6 +21,8 @@ Do not forget to use the option --recurse-submodules
 
     git clone --recurse-submodules https://github.com/hcab14/gr-kiwisdr.git
     cd gr-kiwisdr
+    mkdir build
+    cd build
     cmake ../
     make install
 
