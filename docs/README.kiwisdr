@@ -3,48 +3,45 @@
 
 ## Overview
 
-Gnuradio [KiwiSDR](http://kiwisdr.com/) client using the
-[boost.beast](https://www.boost.org/doc/libs/master/libs/beast/doc/html/index.html)
-websocket library
+Gnuradio OOT module for the [KiwiSDR](http://kiwisdr.com/)
 
 
 ## Requirements
 
 * C++-11 compiler
 * gnuradio 3.7
-* boost >= 1.65 (may or may not work with earlier boost versions)
+* boost >= 1.45; for the KiwiSDR websocket client boost >=1.65 is needed (may or may not work with earlier boost versions)
 
 
 ## Installation
 
-Do not forget to use the option --recurse-submodules
-
+Do not forget to use the option `--recurse-submodules`
+```
     git clone --recurse-submodules https://github.com/hcab14/gr-kiwisdr.git
     cd gr-kiwisdr
     mkdir build
     cd build
     cmake ../
     make install
+```
+For building without the KiwiSDR websocket client (no dependency on recent boost version):
+```
+    cmake -DENABLE_KIWI_WS_CLIENT=OFF ../
+```
 
+## GNURadio blocks
 
-## Limitations
-
-* Only IQ mode is supported for now
-* Missing KiwiSDR configuration options (user,pw,AGC,...)
-* May not work with older boost versions distributed with gnuradio packages
-
+1. `kiwisdr/kiwisdr`: KiwiSDR websocket client providing a source of timestamped IQ samples
+   * uses the [boost.beast](https://www.boost.org/doc/libs/master/libs/beast/doc/html/index.html) websocket library
+   * Only IQ mode is supported for now
+   * Missing KiwiSDR configuration options (user,pw,AGC,...)
+   * May not work with older boost versions distributed with GNURadio packages
+2. `kiwisdr/kiwi_wav_source`: source block for reading KiwiSDR IQ files with GNSS timestamps
+   * the wav files need to have been be recorded with `kiwirecorder.py -w ...`, *i.e.*, contain GNSS time stamps
+3. `kiwisdr/align_streams`: alignment of IQ streams coming from the same KiwiSDR
 
 ## Usage
-This is the kiwisdr-write-a-block package meant as a guide to building
-out-of-tree packages. To use the kiwisdr blocks, the Python namespaces
-is in 'kiwisdr', which is imported as:
 
-    import kiwisdr
-
-See the Doxygen documentation for details about the blocks available
-in this package. A quick listing of the details can be found in Python
-after importing by using:
-
-    help(kiwisdr)
-
-See [examples/kiwisdr_rx.grc](https://github.com/hcab14/gr-kiwisdr/blob/master/examples/kiwisdr_rx.grc).
+See
+* [examples/kiwisdr_rx.grc](https://github.com/hcab14/gr-kiwisdr/blob/master/examples/kiwisdr_rx.grc) (KiwiSDR websocket IQ client)
+* [examples/test_align.grc](https://github.com/hcab14/gr-kiwisdr/blob/master/examples/test_align.grc) (KiwiSDR wav file reader + timestamped IQ stream alignment)

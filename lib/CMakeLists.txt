@@ -26,11 +26,10 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
-list(APPEND kiwisdr_sources
-    kiwi_ws_client.cc
-    kiwisdr_impl.cc
-    kiwi_wav_source_impl.cc
-)
+list(APPEND kiwisdr_sources kiwi_wav_source_impl.cc)
+if(GR_KIWI_WS_CLIENT)
+  list(APPEND kiwisdr_sources kiwi_ws_client.cc kiwisdr_impl.cc)
+endif()
 
 set(kiwisdr_sources "${kiwisdr_sources}" PARENT_SCOPE)
 if(NOT kiwisdr_sources)
@@ -62,10 +61,9 @@ include(GrTest)
 include_directories(${CPPUNIT_INCLUDE_DIRS})
 
 list(APPEND test_kiwisdr_sources
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_kiwisdr.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwisdr.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwi_wav_source.cc
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwi_wav_source.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_kiwisdr.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/qa_kiwisdr.cc)
 
 add_executable(test-kiwisdr ${test_kiwisdr_sources})
 
@@ -77,7 +75,9 @@ target_link_libraries(
   gnuradio-kiwisdr
 )
 
-GR_ADD_TEST(test_kiwisdr test-kiwisdr)
+if(GR_KIWI_WS_CLIENT)
+  GR_ADD_TEST(test_kiwisdr test-kiwisdr)
+endif()
 
 ########################################################################
 # Print summary

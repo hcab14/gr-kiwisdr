@@ -74,6 +74,22 @@ if(CMAKE_COMPILER_IS_GNUCXX AND NOT WIN32)
 endif()
 
 ########################################################################
+# Option for disabling the kiwisdr websocket client source block
+########################################################################
+OPTION(ENABLE_KIWI_WS_CLIENT "Enable KiwiSDR websocket client" ON)
+if(ENABLE_KIWI_WS_CLIENT)
+  SET(GR_KIWI_WS_CLIENT True)
+  SET(BOOST_MIN_VERSION 1.65)
+  add_definitions(-DGR_KIWI_WS_CLIENT)
+  message(STATUS "ADDING KiwiSDR websocket client source block (required boost version >= ${BOOST_MIN_VERSION})")
+else(ENABLE_KIWI_WS_CLIENT)
+  SET(GR_KIWI_WS_CLIENT False)
+  SET(BOOST_MIN_VERSION 1.48)
+  message(STATUS "NO KiwiSDR websocket client source block (required boost version >= ${BOOST_MIN_VERSION})")
+endif(ENABLE_KIWI_WS_CLIENT)
+
+
+########################################################################
 # Find boost
 ########################################################################
 if(UNIX AND EXISTS "/usr/lib64")
@@ -88,7 +104,7 @@ set(Boost_ADDITIONAL_VERSIONS
     "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
     "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
 )
-find_package(Boost "1.65" COMPONENTS filesystem system thread)
+find_package(Boost ${BOOST_MIN_VERSION} COMPONENTS filesystem system thread)
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost required to compile kiwisdr")

@@ -21,8 +21,8 @@
 ########################################################################
 # Install public header files
 ########################################################################
-install(FILES
-  api.h
-  kiwisdr.h
-    kiwi_wav_source.h DESTINATION include/kiwisdr
-  )
+install(FILES api.h kiwi_wav_source.h DESTINATION include/kiwisdr)
+
+if(GR_KIWI_WS_CLIENT)
+  install(FILES kiwisdr.h DESTINATION include/kiwisdr)
+endif(GR_KIWI_WS_CLIENT)
