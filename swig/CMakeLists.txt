@@ -48,6 +48,10 @@ set(GR_SWIG_LIBRARIES gnuradio-kiwisdr)
 set(GR_SWIG_DOC_FILE ${CMAKE_CURRENT_BINARY_DIR}/kiwisdr_swig_doc.i)
 set(GR_SWIG_DOC_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
+if(ENABLE_KIWI_WS_CLIENT)
+  list(APPEND GR_SWIG_FLAGS "-DGR_KIWI_WS_CLIENT")
+endif(ENABLE_KIWI_WS_CLIENT)
+
 GR_SWIG_MAKE(kiwisdr_swig kiwisdr_swig.i)
 
 ########################################################################
