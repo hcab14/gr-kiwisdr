@@ -9,9 +9,9 @@ Gnuradio OOT module for the [KiwiSDR](http://kiwisdr.com/)
 ## Requirements
 
 * C++-11 compiler
+* git, cmake, swig, doxygen
 * gnuradio 3.7
-* boost >= 1.45; for the KiwiSDR websocket client boost >=1.65 is needed (may or may not work with earlier boost versions)
-
+* boost (libboost-pythondev, libboostdev and libcppunit-dev) >= 1.45; for the KiwiSDR websocket client boost >=1.65  is needed (may or may not work with earlier boost versions)
 
 ## Installation
 
@@ -24,10 +24,20 @@ Do not forget to use the option `--recurse-submodules`
     cmake ../
     make install
 ```
+For some reason on OSX the following command is needed:
+```
+    volk_profile -R volk_16u_byteswap
+```
 For building without the KiwiSDR websocket client (no dependency on recent boost version):
 ```
     cmake -DENABLE_KIWI_WS_CLIENT=OFF ../
 ```
+
+## Working installations
+
+* GNURadio [master@219eae9](https://github.com/gnuradio/gnuradio/commit/219eae9a9c2ef7644450e71d19f8f54c12e1f9cc) + boost-1.68
+* GNURadio v.3.7.13.4 + boost-1.66.0_3 (OSX)
+* GNURadio v3.7.11 on Ubuntu 18:10
 
 ## GNURadio blocks
 
@@ -38,7 +48,7 @@ For building without the KiwiSDR websocket client (no dependency on recent boost
    * May not work with older boost versions distributed with GNURadio packages
 2. `kiwisdr/kiwi_wav_source`: source block for reading KiwiSDR IQ files with GNSS timestamps
    * the wav files need to have been be recorded with `kiwirecorder.py -w ...`, *i.e.*, contain GNSS time stamps
-3. `kiwisdr/align_streams`: alignment of IQ streams coming from the same KiwiSDR
+3. `kiwisdr/align_streams`: alignment of IQ streams coming from the same KiwiSDR (this is work in progress)
 
 ## Usage
 
