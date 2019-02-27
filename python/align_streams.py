@@ -32,10 +32,10 @@ class find_offsets(gr.sync_block):
     def __init__(self, num_streams):
         gr.sync_block.__init__(self,
                                name    = "find_offsets",
-                               in_sig  = gr.py_io_signature(1, -1, num_streams*(np.complex64,)),
-                               out_sig = gr.py_io_signature(1, -1, num_streams*(np.complex64,)))
+                               in_sig  = num_streams*(np.complex64,),
+                               out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
-        self._fs          = 12001.1*np.ones(num_streams, dtype=np.double) ## default sample rate
+        self._fs          = 12001.18*np.ones(num_streams, dtype=np.double) ## default sample rate
         self._tags        = [[]    for _ in range(num_streams)]
         self._tags_new    = [False for _ in range(num_streams)]
         self._offsets     = np.zeros(num_streams, dtype=np.int)
@@ -44,7 +44,7 @@ class find_offsets(gr.sync_block):
         self.set_tag_propagation_policy(gr.TPP_DONT)
 
     def work(self, input_items, output_items):
-        n = len(output_items[0])
+        n = len(input_items[0])
         tags=[[] for _ in range(self._num_streams)]
         f = lambda x : x[0]+x[1]
         for i in range(self._num_streams):
@@ -63,14 +63,18 @@ class find_offsets(gr.sync_block):
             fd = lambda x,y,fsx,fsy: x[1]-y[1] - (x[0]/fsx-y[0]/fsy)
             ds = np.array([fd(self._tags[i], self._tags[0], self._fs[i], self._fs[0])
                            for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
+            print('tags=', self._tags)
+            print('ds=',ds)
             ## compute offsets avoiding negative delays
             self._offsets[0]  = 0
             self._offsets[1:] = np.round(ds)
-            self._offsets    -= np.min(self._offsets)
-            ## publish the offsets to the message port
-            msg_out = pmt.make_dict()
-            msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in self._offsets]))
-            self.message_port_pub(self._port_delay, msg_out)
+            ##self._offsets    -= np.min(self._offsets)
+            print(self._offsets)
+            if np.max(self._offsets)<4000:
+                ## publish the offsets to the message port
+                msg_out = pmt.make_dict()
+                msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in self._offsets]))
+                self.message_port_pub(self._port_delay, msg_out)
             ## reset the saved tags array
             self._tags_new = [False for _ in range(self._num_streams)]
 
