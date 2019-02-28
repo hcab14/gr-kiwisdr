@@ -1,2 +1,6 @@
 build/
+examples/top_block.py
 *~
+*.wav
+*.grc
+*.pyc

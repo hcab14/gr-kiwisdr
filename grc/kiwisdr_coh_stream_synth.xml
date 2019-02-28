@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<block>
+  <name>coh_stream_synth</name>
+  <key>kiwisdr_coh_stream_synth</key>
+  <category>[kiwisdr]</category>
+  <import>import kiwisdr</import>
+  <make>kiwisdr.coh_stream_synth(3, $fs_in, $df_in)</make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>fs_in</name>
+    <key>fs_in</key>
+    <value>12000</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>df_in</name>
+    <key>df_in</key>
+    <value>8000</value>
+    <type>int</type>
+  </param>
+
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+    <nports>3</nports>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </source>
+  <source>
+    <name>in_resamp</name>
+    <type>complex</type>
+    <nports>3</nports>
+    <optional>1</optional>
+  </source>
+</block>

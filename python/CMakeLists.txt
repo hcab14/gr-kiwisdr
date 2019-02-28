@@ -32,7 +32,9 @@ endif()
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    align_streams.py DESTINATION ${GR_PYTHON_DIR}/kiwisdr
+    align_streams.py
+    coh_stream_synth.py
+    DESTINATION ${GR_PYTHON_DIR}/kiwisdr
 )
 
 ########################################################################

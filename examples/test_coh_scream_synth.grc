@@ -34,7 +34,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(8, 8)</value>
+      <value>(10, 5)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -62,7 +62,7 @@
     </param>
     <param>
       <key>realtime_scheduling</key>
-      <value>1</value>
+      <value></value>
     </param>
     <param>
       <key>run_command</key>
@@ -97,7 +97,8 @@
     <key>variable</key>
     <param>
       <key>comment</key>
-      <value></value>
+      <value>frequency distance (in Hz)
+between the input streams</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -105,7 +106,35 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(469, 16)</value>
+      <value>(309, 5)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>delta_f</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>8000</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value>center frequency
+(used only for display)</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(458, 5)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -117,41 +146,15 @@
     </param>
     <param>
       <key>value</key>
-      <value>14370e3</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(597, 16)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
       <value>0</value>
     </param>
-    <param>
-      <key>id</key>
-      <value>resample</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>12000/8000.</value>
-    </param>
   </block>
   <block>
     <key>variable</key>
     <param>
       <key>comment</key>
-      <value></value>
+      <value>Sample rate 
+of the input streams</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -159,7 +162,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(192, 16)</value>
+      <value>(181, 5)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -182,7 +185,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>0</value>
+      <value>-30</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -190,7 +193,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(949, 16)</value>
+      <value>(714, 5)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -245,7 +248,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>-120</value>
+      <value>-80</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -253,7 +256,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(810, 16)</value>
+      <value>(597, 5)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -301,60 +304,6 @@
     </param>
   </block>
   <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(288, 16)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>taps</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>firdes.low_pass_2(4, 4*samp_rate/resample, samp_rate/resample*0.5, samp_rate/resample*0.02, 80, 5)</value>
-    </param>
-  </block>
-  <block>
-    <key>variable</key>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(288, 80)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>taps_resampler</value>
-    </param>
-    <param>
-      <key>value</key>
-      <value>firdes.low_pass(1, samp_rate, 0.25*samp_rate/resample, samp_rate/resample*0.02)</value>
-    </param>
-  </block>
-  <block>
     <key>blocks_complex_to_float</key>
     <param>
       <key>alias</key>
@@ -370,15 +319,15 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1178, 458)</value>
+      <value>(853, 197)</value>
     </param>
     <param>
       <key>_rotation</key>
-      <value>270</value>
+      <value>0</value>
     </param>
     <param>
       <key>id</key>
@@ -413,11 +362,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>1</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1088, 282)</value>
+      <value>(586, 165)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -441,7 +390,7 @@
     </param>
     <param>
       <key>samples_per_second</key>
-      <value>samp_rate/resample*4</value>
+      <value>4*delta_f</value>
     </param>
     <param>
       <key>type</key>
@@ -472,7 +421,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>0</value>
     </param>
     <param>
       <key>file</key>
@@ -480,11 +429,11 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1178, 672)</value>
+      <value>(1056, 197)</value>
     </param>
     <param>
       <key>_rotation</key>
-      <value>270</value>
+      <value>0</value>
     </param>
     <param>
       <key>id</key>
@@ -496,11 +445,11 @@
     </param>
     <param>
       <key>samp_rate</key>
-      <value>int(round(samp_rate*4/resample))</value>
+      <value>4*delta_f</value>
     </param>
   </block>
   <block>
-    <key>kiwisdr_align_streams</key>
+    <key>kiwisdr_coh_stream_synth</key>
     <param>
       <key>alias</key>
       <value></value>
@@ -519,7 +468,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(309, 197)</value>
+      <value>(320, 165)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -527,7 +476,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>kiwisdr_align_streams_0</value>
+      <value>kiwisdr_coh_stream_synth_0</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -538,8 +487,12 @@
       <value>0</value>
     </param>
     <param>
-      <key>num_streams</key>
-      <value>3</value>
+      <key>df_in</key>
+      <value>delta_f</value>
+    </param>
+    <param>
+      <key>fs_in</key>
+      <value>samp_rate</value>
     </param>
   </block>
   <block>
@@ -562,11 +515,11 @@
     </param>
     <param>
       <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190129T103700Z_14370000_IS0KYB_iq.wav</value>
+      <value>/Users/chm/Software/signal-analysis/WBHF/Test/20190212T041800Z_2558300_SM2KOT_iq.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(21, 240)</value>
+      <value>(10, 229)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -605,11 +558,11 @@
     </param>
     <param>
       <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190129T103700Z_14378000_IS0KYB_iq.wav</value>
+      <value>/Users/chm/Software/signal-analysis/WBHF/Test/20190212T041800Z_2566300_SM2KOT_iq.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(21, 325)</value>
+      <value>(10, 293)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -648,11 +601,11 @@
     </param>
     <param>
       <key>filename</key>
-      <value>/Users/chm/Software/gr-kiwisdr/examples/20190129T103700Z_14362000_IS0KYB_iq.wav</value>
+      <value>/Users/chm/Software/signal-analysis/WBHF/Test/20190212T041800Z_2550300_SM2KOT_iq.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(21, 154)</value>
+      <value>(10, 165)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -672,73 +625,6 @@
     </param>
   </block>
   <block>
-    <key>pfb_synthesizer_ccf</key>
-    <param>
-      <key>twox</key>
-      <value>False</value>
-    </param>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>bus_conns</key>
-      <value>[[0,],]</value>
-    </param>
-    <param>
-      <key>ch_map</key>
-      <value>[3,0,1,2]</value>
-    </param>
-    <param>
-      <key>numchans</key>
-      <value>4</value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>connections</key>
-      <value>3</value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(874, 240)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>pfb_synthesizer_ccf_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_delay</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>taps</key>
-      <value>taps</value>
-    </param>
-  </block>
-  <block>
     <key>qtgui_waterfall_sink_x</key>
     <param>
       <key>axislabels</key>
@@ -746,7 +632,7 @@
     </param>
     <param>
       <key>bw</key>
-      <value>samp_rate*4/resample</value>
+      <value>delta_f*4</value>
     </param>
     <param>
       <key>alias</key>
@@ -774,7 +660,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1184, 64)</value>
+      <value>(853, 96)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -782,7 +668,7 @@
     </param>
     <param>
       <key>_rotation</key>
-      <value>90</value>
+      <value>0</value>
     </param>
     <param>
       <key>grid</key>
@@ -969,7 +855,7 @@
     </param>
     <param>
       <key>bw</key>
-      <value>samp_rate/resample</value>
+      <value>delta_f</value>
     </param>
     <param>
       <key>alias</key>
@@ -977,7 +863,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>fc-samp_rate/resample</value>
+      <value>fc-delta_f</value>
     </param>
     <param>
       <key>comment</key>
@@ -989,7 +875,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>1</value>
     </param>
     <param>
       <key>fftsize</key>
@@ -997,7 +883,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(832, 405)</value>
+      <value>(576, 234)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1192,7 +1078,7 @@
     </param>
     <param>
       <key>bw</key>
-      <value>samp_rate/resample</value>
+      <value>delta_f</value>
     </param>
     <param>
       <key>alias</key>
@@ -1200,7 +1086,7 @@
     </param>
     <param>
       <key>fc</key>
-      <value>fc+samp_rate/resample</value>
+      <value>fc+delta_f</value>
     </param>
     <param>
       <key>comment</key>
@@ -1212,7 +1098,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>1</value>
     </param>
     <param>
       <key>fftsize</key>
@@ -1220,7 +1106,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(832, 597)</value>
+      <value>(576, 426)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1415,7 +1301,7 @@
     </param>
     <param>
       <key>bw</key>
-      <value>samp_rate/resample</value>
+      <value>delta_f</value>
     </param>
     <param>
       <key>alias</key>
@@ -1435,7 +1321,7 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>1</value>
     </param>
     <param>
       <key>fftsize</key>
@@ -1443,7 +1329,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(832, 501)</value>
+      <value>(576, 330)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1630,183 +1516,6 @@
       <value>firdes.WIN_BLACKMAN_hARRIS</value>
     </param>
   </block>
-  <block>
-    <key>rational_resampler_xxx</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>decim</key>
-      <value>3</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>fbw</key>
-      <value>2./6</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(533, 128)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>rational_resampler_xxx_0</value>
-    </param>
-    <param>
-      <key>interp</key>
-      <value>2</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>taps</key>
-      <value>taps_resampler</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>ccc</value>
-    </param>
-  </block>
-  <block>
-    <key>rational_resampler_xxx</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>decim</key>
-      <value>3</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>fbw</key>
-      <value>2./6</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(533, 224)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>rational_resampler_xxx_0_0</value>
-    </param>
-    <param>
-      <key>interp</key>
-      <value>2</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>taps</key>
-      <value>taps_resampler</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>ccc</value>
-    </param>
-  </block>
-  <block>
-    <key>rational_resampler_xxx</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>decim</key>
-      <value>3</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>fbw</key>
-      <value>2./6</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(533, 320)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>rational_resampler_xxx_0_1</value>
-    </param>
-    <param>
-      <key>interp</key>
-      <value>2</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>taps</key>
-      <value>taps_resampler</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>ccc</value>
-    </param>
-  </block>
   <connection>
     <source_block_id>blocks_complex_to_float_0</source_block_id>
     <sink_block_id>blocks_wavfile_sink_0</sink_block_id>
@@ -1832,80 +1541,44 @@
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>kiwisdr_align_streams_0</source_block_id>
-    <sink_block_id>rational_resampler_xxx_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>kiwisdr_align_streams_0</source_block_id>
-    <sink_block_id>rational_resampler_xxx_0_0</sink_block_id>
+    <source_block_id>kiwisdr_coh_stream_synth_0</source_block_id>
+    <sink_block_id>qtgui_waterfall_sink_x_0_0</sink_block_id>
     <source_key>1</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>kiwisdr_align_streams_0</source_block_id>
-    <sink_block_id>rational_resampler_xxx_0_1</sink_block_id>
+    <source_block_id>kiwisdr_coh_stream_synth_0</source_block_id>
+    <sink_block_id>qtgui_waterfall_sink_x_0_0_1</sink_block_id>
     <source_key>2</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>kiwisdr_kiwi_wav_source_0</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>kiwisdr_kiwi_wav_source_1</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>2</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>kiwisdr_kiwi_wav_source_1_0</source_block_id>
-    <sink_block_id>kiwisdr_align_streams_0</sink_block_id>
-    <source_key>0</source_key>
+    <source_block_id>kiwisdr_coh_stream_synth_0</source_block_id>
+    <sink_block_id>qtgui_waterfall_sink_x_0_0_0</sink_block_id>
+    <source_key>3</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>pfb_synthesizer_ccf_0</source_block_id>
+    <source_block_id>kiwisdr_coh_stream_synth_0</source_block_id>
     <sink_block_id>blocks_throttle_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>rational_resampler_xxx_0</source_block_id>
-    <sink_block_id>pfb_synthesizer_ccf_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>rational_resampler_xxx_0</source_block_id>
-    <sink_block_id>qtgui_waterfall_sink_x_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>rational_resampler_xxx_0_0</source_block_id>
-    <sink_block_id>pfb_synthesizer_ccf_0</sink_block_id>
+    <source_block_id>kiwisdr_kiwi_wav_source_0</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>rational_resampler_xxx_0_0</source_block_id>
-    <sink_block_id>qtgui_waterfall_sink_x_0_0_1</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>rational_resampler_xxx_0_1</source_block_id>
-    <sink_block_id>pfb_synthesizer_ccf_0</sink_block_id>
+    <source_block_id>kiwisdr_kiwi_wav_source_1</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>2</sink_key>
   </connection>
   <connection>
-    <source_block_id>rational_resampler_xxx_0_1</source_block_id>
-    <sink_block_id>qtgui_waterfall_sink_x_0_0_0</sink_block_id>
+    <source_block_id>kiwisdr_kiwi_wav_source_1_0</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>

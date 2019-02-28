@@ -18,7 +18,8 @@
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
 
-install(FILES kiwisdr_kiwi_wav_source.xml kiwisdr_align_streams.xml DESTINATION share/gnuradio/grc/blocks)
+install(FILES kiwisdr_kiwi_wav_source.xml kiwisdr_align_streams.xml kiwisdr_coh_stream_synth.xml
+  DESTINATION share/gnuradio/grc/blocks)
 
 if(GR_KIWI_WS_CLIENT)
   install(FILES kiwisdr_kiwisdr.xml DESTINATION share/gnuradio/grc/blocks)

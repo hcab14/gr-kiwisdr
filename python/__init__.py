@@ -32,4 +32,5 @@ except ImportError:
 
 # import any pure python here
 from align_streams import align_streams
+from coh_stream_synth import coh_stream_synth
 #

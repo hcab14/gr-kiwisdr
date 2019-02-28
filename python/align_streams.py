@@ -40,7 +40,9 @@ class find_offsets(gr.sync_block):
         self._tags_new    = [False for _ in range(num_streams)]
         self._offsets     = np.zeros(num_streams, dtype=np.int)
         self._port_delay  = pmt.intern('delay')
+        self._port_fs     = pmt.intern('fs')
         self.message_port_register_out(self._port_delay)
+        self.message_port_register_out(self._port_fs)
         self.set_tag_propagation_policy(gr.TPP_DONT)
 
     def work(self, input_items, output_items):
@@ -75,6 +77,11 @@ class find_offsets(gr.sync_block):
                 msg_out = pmt.make_dict()
                 msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in self._offsets]))
                 self.message_port_pub(self._port_delay, msg_out)
+
+            msg_out = pmt.make_dict()
+            msg_out = pmt.dict_add(msg_out, pmt.intern('fs'), pmt.to_pmt(np.mean(self._fs)))
+            self.message_port_pub(self._port_fs, msg_out)
+
             ## reset the saved tags array
             self._tags_new = [False for _ in range(self._num_streams)]
 
@@ -127,3 +134,5 @@ class align_streams(gr.hier_block2):
 
         self.msg_connect((self._find_offsets, 'delay'), (self._delays, 'delay'))
 
+    def get_find_offsets(self):
+        return self._find_offsets
