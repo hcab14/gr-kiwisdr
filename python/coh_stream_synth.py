@@ -57,6 +57,9 @@ class rotator_array(gr.basic_block):
         for (i,d) in enumerate(phase_increments):
             self._rotators[i].set_phase_inc(d)
 
+def gcd(a, b):
+    return gcd(b, a % b) if b else a
+
 class coh_stream_synth(gr.hier_block2):
     """
     Block for coherently combining KiwiSDR IQ streams into a single stream with larger bandwidth
@@ -66,15 +69,15 @@ class coh_stream_synth(gr.hier_block2):
                                 "coh_stream_synth",
                                 gr.io_signature(num_streams,   num_streams,   gr.sizeof_gr_complex),
                                 gr.io_signature(num_streams+1, num_streams+1, gr.sizeof_gr_complex))
-        fsr = delta_f_in
-        gcd = np.gcd(fsr, fs_in)
+        fsr    = delta_f_in
+        factor = gcd(fsr, fs_in)
 
         self._align_streams = align_streams(num_streams)
         self._rotators      = rotator_array(num_streams, fs_in, delta_f_in)
 
         taps_resampler = filter.firdes.low_pass(1, fs_in, 0.25*fsr, 0.01*fsr)
-        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=fsr/gcd,
-                                                                   decimation=fs_in/gcd,
+        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=fsr/factor,
+                                                                   decimation=fs_in/factor,
                                                                    taps=(taps_resampler),
                                                                    fractional_bw=None) for _ in range(num_streams)]
         taps_pfb = filter.firdes.low_pass_2(1+num_streams, (1+num_streams)*fsr,
