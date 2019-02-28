@@ -71,17 +71,21 @@ class coh_stream_synth(gr.hier_block2):
                                 gr.io_signature(num_streams+1, num_streams+1, gr.sizeof_gr_complex))
         fsr    = delta_f_in
         factor = gcd(fsr, fs_in)
+        interp = fsr/factor
+        decim  = fs_in/factor
 
         self._align_streams = align_streams(num_streams)
         self._rotators      = rotator_array(num_streams, fs_in, delta_f_in)
 
-        taps_resampler = filter.firdes.low_pass(1, fs_in, 0.25*fsr, 0.01*fsr)
-        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=fsr/factor,
-                                                                   decimation=fs_in/factor,
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass(1, 1, 0.49/decim, 0.01/decim)
+        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=interp,
+                                                                   decimation=decim,
+                                                                   ## taps=None,
+                                                                   ## fractional_bw=0.48) for _ in range(num_streams)]
                                                                    taps=(taps_resampler),
                                                                    fractional_bw=None) for _ in range(num_streams)]
-        taps_pfb = filter.firdes.low_pass_2(1+num_streams, (1+num_streams)*fsr,
-                                            0.485*fsr, 0.05*fsr, 80, 5)
+        self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(1+num_streams, (1+num_streams)*fsr,
+                                                             0.50*fsr, 0.01*fsr, 80, 5)
         self._pfb_synthesizer = filter.pfb_synthesizer_ccf(1+num_streams, (taps_pfb), False)
         channel_map = [num_streams]
         channel_map.extend(range(num_streams))
@@ -94,6 +98,8 @@ class coh_stream_synth(gr.hier_block2):
                          (self._pfb_synthesizer, i))
             self.connect((self._rational_resamplers[i], 0),
                          (self, 1+i))
+            # self.connect((self._rotators.get_rotator_block(i), 0),
+            #              (self, 1+i))
         self.connect((self._pfb_synthesizer, 0), (self, 0))
 
         self.msg_connect((self._align_streams.get_find_offsets(), "fs"), (self._rotators, "fs"))

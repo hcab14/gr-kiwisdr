@@ -36,8 +36,8 @@ class find_offsets(gr.sync_block):
                                out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
         self._fs          = 12001.18*np.ones(num_streams, dtype=np.double) ## default sample rate
-        self._tags        = [[]    for _ in range(num_streams)]
-        self._tags_new    = [False for _ in range(num_streams)]
+        self._tags        = [[]  for _ in range(num_streams)]
+        self._tags_new    = -np.ones(num_streams, dtype=np.int64)
         self._offsets     = np.zeros(num_streams, dtype=np.int)
         self._port_delay  = pmt.intern('delay')
         self._port_fs     = pmt.intern('fs')
@@ -58,14 +58,14 @@ class find_offsets(gr.sync_block):
             if tags[i] != []:
                 if self._tags[i] != []:
                     self._fs[i] = (self._tags[i][0] - tags[i][0][0])/(self._tags[i][1] - tags[i][0][1])
+                    self._tags_new[i] += 1
                 self._tags[i] = tags[i][0]
-                self._tags_new[i] = True
-        if all(self._tags_new):
+        if all(self._tags_new == 1):
             ## compute differences w.r.t 1st in number of samples
             fd = lambda x,y,fsx,fsy: x[1]-y[1] - (x[0]/fsx-y[0]/fsy)
             ds = np.array([fd(self._tags[i], self._tags[0], self._fs[i], self._fs[0])
                            for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
-            print('tags=', self._tags)
+            #print('tags=', self._tags)
             print('ds=',ds)
             ## compute offsets avoiding negative delays
             self._offsets[0]  = 0
@@ -79,11 +79,12 @@ class find_offsets(gr.sync_block):
                 self.message_port_pub(self._port_delay, msg_out)
 
             msg_out = pmt.make_dict()
+            print('fs', self._fs, np.mean(self._fs));
             msg_out = pmt.dict_add(msg_out, pmt.intern('fs'), pmt.to_pmt(np.mean(self._fs)))
             self.message_port_pub(self._port_fs, msg_out)
 
             ## reset the saved tags array
-            self._tags_new = [False for _ in range(self._num_streams)]
+            ##self._tags_new = [False for _ in range(self._num_streams)]
 
         ## pass through all data streams
         for i in range(self._num_streams):

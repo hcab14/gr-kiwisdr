@@ -172,7 +172,7 @@ kiwi_wav_source_impl::work(int noutput_items,
         return WORK_DONE;
       }
       //     insert a stream tag for each new (=not interpolated) gps timestamp
-      if (kiwi.last_gnss_solution() - _last_kiwi_chunk.last_gnss_solution() < 0 && !_gnss_tag_done) {
+      // if (kiwi.last_gnss_solution() - _last_kiwi_chunk.last_gnss_solution() < 0 && !_gnss_tag_done) {
         // GR_LOG_DEBUG(d_logger,(boost::format("gpssec=%16.9f (%3d)")
         //                        % kiwi.as_double()
         //                        % kiwi.last_gnss_solution()));
@@ -181,7 +181,7 @@ kiwi_wav_source_impl::work(int noutput_items,
                                                pmt::from_double(1e-9*kiwi.gpsnsec()));
         add_item_tag(0, nitems_written(0)+nout, TIME_KEY, val, _id);
         _gnss_tag_done = true;//(kiwi.last_gnss_solution() == 0);
-      }
+      // }
       _last_kiwi_chunk = kiwi;
     } else {
       GR_LOG_WARN(d_logger, str(boost::format("skipping unknown chunk '%s' len=%d") % c.id() % c.size()));
