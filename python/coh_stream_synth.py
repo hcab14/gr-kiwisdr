@@ -52,7 +52,7 @@ class rotator_array(gr.basic_block):
     def msg_handler_rotator(self, msg_in):
         fs = pmt.to_python(pmt.cdar(msg_in))
         n  = self._num_streams
-        phase_increments = 2*np.pi * self._df/fs * (fs/self._fs-1.0) * np.arange(-(n//2), (n//2)+1)
+        phase_increments = 2*np.pi * self._df/self._fs * (self._fs/fs-1.0) * np.arange(-(n//2), (n//2)+1)
         print('phase_increments=', phase_increments)
         for (i,d) in enumerate(phase_increments):
             self._rotators[i].set_phase_inc(d)
@@ -77,7 +77,7 @@ class coh_stream_synth(gr.hier_block2):
         self._align_streams = align_streams(num_streams)
         self._rotators      = rotator_array(num_streams, fs_in, delta_f_in)
 
-        self._taps_resampler = taps_resampler = filter.firdes.low_pass(1, 1, 0.49/decim, 0.01/decim)
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass(1, 1, 0.50/decim, 0.01/decim)
         self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=interp,
                                                                    decimation=decim,
                                                                    ## taps=None,
