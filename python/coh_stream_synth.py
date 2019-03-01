@@ -77,16 +77,25 @@ class coh_stream_synth(gr.hier_block2):
         self._align_streams = align_streams(num_streams)
         self._rotators      = rotator_array(num_streams, fs_in, delta_f_in)
 
-        self._taps_resampler = taps_resampler = filter.firdes.low_pass(1, 1, 0.50/decim, 0.01/decim)
-        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation=interp,
-                                                                   decimation=decim,
-                                                                   ## taps=None,
-                                                                   ## fractional_bw=0.48) for _ in range(num_streams)]
-                                                                   taps=(taps_resampler),
-                                                                   fractional_bw=None) for _ in range(num_streams)]
-        self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(1+num_streams, (1+num_streams)*fsr,
-                                                             0.50*fsr, 0.01*fsr, 80, 5)
-        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(1+num_streams, (taps_pfb), False)
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass(gain             = interp,
+                                                                       sampling_freq    = 1.0,
+                                                                       cutoff_freq      = 0.50/decim,
+                                                                       transition_width = 0.01/decim,
+                                                                       window           = filter.firdes.WIN_HAMMING)
+        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation = interp,
+                                                                   decimation    = decim,
+                                                                   taps          = (taps_resampler),
+                                                                   fractional_bw = None) for _ in range(num_streams)]
+        self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(gain             = (1+num_streams),
+                                                             sampling_freq    = float((1+num_streams)*fsr),
+                                                             cutoff_freq      = 0.495*fsr,
+                                                             transition_width = 0.01*fsr,
+                                                             attenuation_dB   = 80.0,
+                                                             window           = filter.firdes.WIN_BLACKMAN_HARRIS)
+
+        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 1+num_streams,
+                                                           taps     = (taps_pfb),
+                                                           twox     = False)
         channel_map = [num_streams]
         channel_map.extend(range(num_streams))
         self._pfb_synthesizer.set_channel_map(channel_map)
