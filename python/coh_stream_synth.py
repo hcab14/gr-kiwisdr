@@ -26,36 +26,50 @@ from gnuradio import filter
 import pmt
 from align_streams import align_streams
 
-class rotator_array(gr.basic_block):
+class coh_rotator(gr.sync_block):
     """
-    This is a pure message handling gr.basic_block containing an array of blocks.rotator_cc
-    The phase increment of these blocks is set in the message handler
+    Coherently rotate num_streams of IQ samples
+    Phase increments are set via message parsing
     """
     def __init__(self, num_streams, fs, df):
-        gr.basic_block.__init__(
+        gr.sync_block.__init__(
             self,
-            name="rotator_array",
-            in_sig=None,
-            out_sig=None)
+            name="coh_rotator",
+            in_sig  = num_streams*(np.complex64,),
+            out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
         self._fs = fs
         self._df = df
-        self._rotators = [blocks.rotator_cc(0) for _ in range(num_streams)]
-        self._port_fs  = pmt.intern('fs')
+        self._exp_phase     = np.ones(num_streams, dtype=np.complex64)
+        self._exp_phase_inc = np.ones(num_streams, dtype=np.complex64)
+        self._port_fs = pmt.intern('fs')
         self.message_port_register_in(self._port_fs)
         self.set_msg_handler(self._port_fs, self.msg_handler_rotator)
         self.set_tag_propagation_policy(gr.TPP_DONT)
 
-    def get_rotator_block(self, i):
-        return self._rotators[i]
+    def work(self, input_items, output_items):
+        n = len(input_items[0])
+        exp_phases = np.zeros(n, dtype=np.complex64)
+        for i in range(self._num_streams):
+            exp_phases[:] = self._exp_phase_inc[i]
+            exp_phases    = np.cumprod(exp_phases[:])
+            exp_phases   *= self._exp_phase[i]
+            output_items[i][:]  = input_items[i]
+            ## we need a better way for making sure the streams are aligned (coherence)
+            if self.nitems_written(i) > 4096:
+                output_items[i][:] *= exp_phases
+                self._exp_phase[i]  = exp_phases[-1]
+        ## normalize
+        self._exp_phase /= np.abs(self._exp_phase)
+        return n
 
     def msg_handler_rotator(self, msg_in):
         fs = pmt.to_python(pmt.cdar(msg_in))
         n  = self._num_streams
-        phase_increments = 2*np.pi * self._df/self._fs * (self._fs/fs-1.0) * np.arange(-(n//2), (n//2)+1)
-        print('phase_increments=', phase_increments)
-        for (i,d) in enumerate(phase_increments):
-            self._rotators[i].set_phase_inc(d)
+        m  = (n-1)/2
+        phase_inc = 2*np.pi * self._df/float(self._fs) * (self._fs/fs-1.0)
+        self._exp_phase_inc = np.exp(1j*phase_inc * np.linspace(-m,m,n),
+                                     dtype=np.complex64)
 
 def gcd(a, b):
     return gcd(b, a % b) if b else a
@@ -75,7 +89,7 @@ class coh_stream_synth(gr.hier_block2):
         decim  = fs_in/factor
 
         self._align_streams = align_streams(num_streams)
-        self._rotators      = rotator_array(num_streams, fs_in, delta_f_in)
+        self._rotators      = coh_rotator(num_streams, fs_in, delta_f_in)
 
         self._taps_resampler = taps_resampler = filter.firdes.low_pass(gain             = interp,
                                                                        sampling_freq    = 1.0,
@@ -102,7 +116,7 @@ class coh_stream_synth(gr.hier_block2):
         for i in range(num_streams):
             self.connect((self, i),
                          (self._align_streams, i),
-                         (self._rotators.get_rotator_block(i), 0),
+                         (self._rotators, i),
                          (self._rational_resamplers[i], 0),
                          (self._pfb_synthesizer, i))
             self.connect((self._rational_resamplers[i], 0),
