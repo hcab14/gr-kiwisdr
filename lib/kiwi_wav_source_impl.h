@@ -33,8 +33,7 @@
 
 namespace gr {
 namespace kiwisdr {
-
-namespace {
+namespace wav {
 #ifdef _USE_PRAGMA_PACK
 #  pragma pack(push, 1)
 #endif
@@ -114,7 +113,7 @@ private:
 #  undef _USE_PRAGMA_PACK
 #endif
 
-} // anonymous namespace
+} // namespace wav
 
 static const pmt::pmt_t TIME_KEY = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
 
@@ -123,13 +122,14 @@ class kiwi_wav_source_impl : public kiwi_wav_source
 private:
   std::string _filename;
   std::shared_ptr<std::ifstream> _stream;
-  std::streampos _pos;
-  chunk_fmt  _fmt;
-  chunk_kiwi _last_kiwi_chunk;
-  std::vector<gr_complex> _buffer;
-  bool       _gnss_tag_sent;
-  bool       _gnss_tag_done;
+  std::streampos  _pos;
+  wav::chunk_kiwi _last_kiwi_chunk;
+  std::uint64_t   _counter;
+  std::uint64_t   _num_samples;
   pmt::pmt_t _id;
+
+  gr_complex read_sample(bool& eof);
+  gr_complex get_next_sample(bool& kiwi_chunk, bool& eof);
 
 public:
   kiwi_wav_source_impl(std::string filename);
