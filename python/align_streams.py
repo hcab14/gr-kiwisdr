@@ -30,96 +30,94 @@ class find_offsets(gr.sync_block):
     Note that it assumes that the offsets are close to integer multiples of samples
     """
     def __init__(self, num_streams):
-        gr.sync_block.__init__(self,
-                               name    = 'find_offsets',
-                               in_sig  = num_streams*(np.complex64,),
-                               out_sig = num_streams*(np.complex64,))
+        gr.sync_block.__init__(
+            self,
+            name    = 'find_offsets',
+            in_sig  = num_streams*(np.complex64,),
+            out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
-        self._fs          = 12001.18*np.ones(num_streams, dtype=np.double) ## default sample rate
-        self._tags        = [[]  for _ in range(num_streams)]
-        self._tags_new    = -np.ones(num_streams, dtype=np.int64)
-        self._offsets     = np.zeros(num_streams, dtype=np.int)
+        self._fs          = 12001.18*np.zeros(num_streams, dtype=np.float64) ## default sample rate
+        self._tags        = num_streams*[[]]
         self._port_delay  = pmt.intern('delay')
         self._port_fs     = pmt.intern('fs')
+        self._pmt_align   = pmt.intern('align')
         self.message_port_register_out(self._port_delay)
         self.message_port_register_out(self._port_fs)
-        self.set_tag_propagation_policy(gr.TPP_DONT)
+        self.set_tag_propagation_policy(gr.TPP_ONE_TO_ONE)
 
     def work(self, input_items, output_items):
-        n = len(input_items[0])
-        tags=[[] for _ in range(self._num_streams)]
-        f = lambda x : x[0]+x[1]
+        n       = len(input_items[0])
+        tags    = self._num_streams*[[]]
+        tags_ok = self._num_streams*[False]
+        f       = lambda x : np.float64(x[0])+x[1]
         for i in range(self._num_streams):
-            ## tags[i][0] => absolute sample#
-            ## tags[i[[1] => GNSS timestamp
-            tags[i] = [(x.offset, f(pmt.to_python(x.value)))
-                       for x in self.get_tags_in_window(i, 0, n)
-                       if pmt.to_python(x.key) == 'rx_time']
+            tags[i] = [{'samp_num' : x.offset,
+                        'gnss_sec' : f(pmt.to_python(x.value))}
+                       for x in self.get_tags_in_window(i, 0, n, pmt.intern('rx_time'))]
             if tags[i] != []:
+                ## use only the 1st tag
+                tags[i] = tags[i][0]
                 if self._tags[i] != []:
-                    self._fs[i] = (self._tags[i][0] - tags[i][0][0])/(self._tags[i][1] - tags[i][0][1])
-                    self._tags_new[i] += 1
-                self._tags[i] = tags[i][0]
-        if all(self._tags_new >= 1):
+                    self._fs[i] = (self._tags[i]['samp_num'] - tags[i]['samp_num'])/(self._tags[i]['gnss_sec'] - tags[i]['gnss_sec'])
+                    tags_ok[i] = self._fs[i] > 11e3
+                self._tags[i] = tags[i]
+        if all(tags_ok):
             ## compute differences w.r.t 1st in number of samples
-            fd = lambda x,y,fsx,fsy: x[1]-y[1] - (x[0]/fsx-y[0]/fsy)
+            fd = lambda x,y,fsx,fsy: x['gnss_sec']-y['gnss_sec'] - (x['samp_num']/fsx-y['samp_num']/fsy)
             ds = np.array([fd(self._tags[i], self._tags[0], self._fs[i], self._fs[0])
                            for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
-            #gr.log.debug('ds={}'.format(ds))
+            gr.log.debug('ds={} fs={}'.format(ds, self._fs))
             ## compute offsets avoiding negative delays
-            self._offsets[0]  = 0
-            self._offsets[1:] = np.round(ds)
-            #gr.log.info('offsets={}'.format(self._offsets))
-            if np.max(self._offsets)<4000:
+            offsets = np.zeros(self._num_streams, dtype=np.int)
+            offsets[0]  = 0
+            offsets[1:] = np.round(ds)
+            if np.max(offsets)<40000 and np.max(np.abs(offsets[1:]-ds)) < 1e-3:
                 ## publish the offsets to the message port
                 msg_out = pmt.make_dict()
-                msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in self._offsets]))
+                offsets -= np.min(offsets)
+                msg_out = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in offsets]))
                 self.message_port_pub(self._port_delay, msg_out)
 
-            msg_out = pmt.make_dict()
-            #gr.log.info('fs={}'.format(self._fs))
-            msg_out = pmt.dict_add(msg_out, pmt.intern('fs'), pmt.to_pmt(np.mean(self._fs)))
-            self.message_port_pub(self._port_fs, msg_out)
+                msg_out = pmt.make_dict()
+                msg_out = pmt.dict_add(msg_out, pmt.intern('fs'), pmt.to_pmt(np.median(self._fs)))
+                self.message_port_pub(self._port_fs, msg_out)
 
-            ## reset the saved tags array
-            ##self._tags_new = [False for _ in range(self._num_streams)]
-
-        ## pass through all data streams
+        ## pass through all data
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
 
         return n
 
-class delay_array(gr.basic_block):
+class delay_proxy(gr.basic_block):
     """
-    This is a pure message handling gr.basic_block containing an array of blocks.delay
-    The delay of these blocks is set in the message handler
+    Pure message handling block containing an array of delay blocks.
+    Delays are set via message parsing.
     """
     def __init__(self, num_streams):
         gr.basic_block.__init__(
             self,
-            name="delay_array",
-            in_sig=None,
-            out_sig=None)
+            name="delay_proxy",
+            in_sig  = None,
+            out_sig = None)
         self._num_streams = num_streams
         self._delays      = [blocks.delay(gr.sizeof_gr_complex, 0) for _ in range(num_streams)]
         self._port_delay  = pmt.intern('delay')
         self.message_port_register_in(self._port_delay)
         self.set_msg_handler(self._port_delay, self.msg_handler_delay)
-        self.set_tag_propagation_policy(gr.TPP_DONT)
 
-    def get_dly_block(self, i):
+    def get(self, i):
         return self._delays[i]
 
     def msg_handler_delay(self, msg_in):
         delays = pmt.to_python(pmt.cdar(msg_in))
+        gr.log.debug('delays={}'.format(delays))
         for i,d in enumerate(delays):
             self._delays[i].set_dly(d)
 
 class align_streams(gr.hier_block2):
     """
     Block for aligning KiwiSDR IQ streams with GNSS timestamps
-    Note that the IQ streams have to be from the same KiwiSDR
+    Note that all used IQ streams have to be from the same KiwiSDR
     """
     def __init__(self, num_streams):
         gr.hier_block2.__init__(self,
@@ -127,11 +125,11 @@ class align_streams(gr.hier_block2):
                                 gr.io_signature(num_streams, num_streams, gr.sizeof_gr_complex),
                                 gr.io_signature(num_streams, num_streams, gr.sizeof_gr_complex))
         self._find_offsets = find_offsets(num_streams)
-        self._delays       = delay_array(num_streams)
+        self._delays       = delay_proxy(num_streams)
         for i in range(num_streams):
             self.connect((self, i),
                          (self._find_offsets, i),
-                         (self._delays.get_dly_block(i), 0),
+                         (self._delays.get(i)),
                          (self, i))
 
         self.msg_connect((self._find_offsets, 'delay'), (self._delays, 'delay'))

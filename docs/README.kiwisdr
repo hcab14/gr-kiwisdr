@@ -37,7 +37,7 @@ For building without the KiwiSDR websocket client (no dependency on recent boost
 
 * GNURadio [master@219eae9](https://github.com/gnuradio/gnuradio/commit/219eae9a9c2ef7644450e71d19f8f54c12e1f9cc) + boost-1.68 (OSX)
 * GNURadio v3.7.13.4 + boost-1.66.0_3 (OSX)
-* GNURadio v3.7.11 on Ubuntu 18.10 and 18.04
+* GNURadio v3.7.11 on Ubuntu 18.10 and 18.04 (Linux Mint 19.1)
 
 ## GNURadio blocks
 
@@ -49,7 +49,7 @@ For building without the KiwiSDR websocket client (no dependency on recent boost
 2. `kiwisdr/kiwi_wav_source`: source block for reading KiwiSDR IQ files with GNSS timestamps
    * the wav files need to have been be recorded with `kiwirecorder.py -w ...`, *i.e.*, contain GNSS time stamps
 3. `kiwisdr/align_streams`: alignment of IQ streams coming from the same KiwiSDR (this is work in progress)
-4. `kiwisdr/coh_stream_synth`: coherent combination of KiwiSDR IQ streams into a single IQ stream (this is work in progress)
+4. `kiwisdr/coh_stream_synth`: coherent combination of three KiwiSDR IQ streams into a single IQ stream (this is work in progress)
 
 ## Usage
 
