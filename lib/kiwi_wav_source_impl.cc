@@ -161,7 +161,8 @@ gr_complex kiwi_wav_source_impl::get_next_sample(bool& kiwi_chunk, bool& eof) {
   } else if (_counter < _num_samples) {
     return read_sample(eof);
   }
-  return WORK_DONE; // should never be reached
+  GR_LOG_FATAL(d_logger, "this point shoud be never reached");
+  return gr_complex(0,0);
 }
 
 int kiwi_wav_source_impl::work(int noutput_items,
