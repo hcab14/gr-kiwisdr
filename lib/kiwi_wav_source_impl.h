@@ -115,7 +115,8 @@ private:
 
 } // namespace wav
 
-static const pmt::pmt_t TIME_KEY = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
+static const pmt::pmt_t TIME_KEY      = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
+static const pmt::pmt_t SAMP_RATE_KEY = pmt::string_to_symbol("samp_rate");
 
 class kiwi_wav_source_impl : public kiwi_wav_source
 {
@@ -123,9 +124,13 @@ private:
   std::string _filename;
   std::shared_ptr<std::ifstream> _stream;
   std::streampos  _pos;
+  wav::chunk_kiwi _kiwi_chunk;
   wav::chunk_kiwi _last_kiwi_chunk;
-  std::uint64_t   _counter;
-  std::uint64_t   _num_samples;
+  std::uint64_t   _sample_counter;
+  std::uint64_t   _chunk_counter;
+  std::uint64_t   _num_samples_in_chunk;
+  double          _last_gnss_time;
+  bool            _use_new_gnss_solution;
   pmt::pmt_t _id;
 
   gr_complex read_sample(bool& eof);
