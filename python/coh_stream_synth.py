@@ -64,6 +64,7 @@ class phase_offset_corrector(gr.hier_block2):
 
         ## the overlapping parts of the spectra are processed at a lower sampling rate
         decim = int(np.floor(samp_rate/float(samp_rate-delta_f)))
+        decim = 1
         self._taps = taps = filter.firdes.low_pass(1, samp_rate, 0.45*(samp_rate-delta_f), samp_rate*0.1)
         self._xlAplus   = filter.freq_xlating_fir_filter_ccf(decim, (taps), +delta_f/2.0, samp_rate)
         self._xlAminus  = filter.freq_xlating_fir_filter_ccf(decim, (taps), -delta_f/2.0, samp_rate)
@@ -194,7 +195,7 @@ Inputs and outputs
 
         self._phase_offset_corrector = phase_offset_corrector(num_streams, fs_in, delta_f_in)
 
-        self._taps_resampler = taps_resampler = filter.firdes.low_pass(gain             = interp,
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass(gain             = decim,
                                                                        sampling_freq    = 1.0,
                                                                        cutoff_freq      = 0.50/decim,
                                                                        transition_width = 0.01/decim,
@@ -217,9 +218,15 @@ Inputs and outputs
         channel_map.extend(range(num_streams))
         self._pfb_synthesizer.set_channel_map(channel_map)
 
+        ## for testing
+        nskip = 0
+        self._skip = [blocks.skiphead(gr.sizeof_gr_complex, nskip),
+                      blocks.skiphead(gr.sizeof_gr_complex, nskip),
+                      blocks.skiphead(gr.sizeof_gr_complex, nskip)]
         for i in range(num_streams):
             self.connect((self, i),
                          (self._align_streams, i),
+                         (self._skip[i]),
                          (self._rotators.get(i)),
                          (self._phase_offset_corrector, i),
                          (self._rational_resamplers[i], 0),
