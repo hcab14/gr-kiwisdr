@@ -118,7 +118,7 @@ between the input streams</value>
     </param>
     <param>
       <key>value</key>
-      <value>8000</value>
+      <value>15000</value>
     </param>
   </block>
   <block>
@@ -153,6 +153,33 @@ between the input streams</value>
     <key>variable</key>
     <param>
       <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(597, 5)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>nskip</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>0</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
       <value>Sample rate 
 of the input streams</value>
     </param>
@@ -174,7 +201,7 @@ of the input streams</value>
     </param>
     <param>
       <key>value</key>
-      <value>12000</value>
+      <value>20250</value>
     </param>
   </block>
   <block>
@@ -323,7 +350,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(586, 112)</value>
+      <value>(768, 112)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -347,6 +374,312 @@ of the input streams</value>
     </param>
   </block>
   <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>2</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 336)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>110</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>2</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 389)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0_0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>110</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>2</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 517)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0_0_0</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>498</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 645)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0_0_1</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>2</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 464)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0_1</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>498</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
+    <key>blocks_skiphead</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(266, 581)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>blocks_skiphead_0_2</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>num_items</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>type</key>
+      <value>complex</value>
+    </param>
+    <param>
+      <key>vlen</key>
+      <value>1</value>
+    </param>
+  </block>
+  <block>
     <key>blocks_throttle</key>
     <param>
       <key>alias</key>
@@ -362,11 +695,11 @@ of the input streams</value>
     </param>
     <param>
       <key>_enabled</key>
-      <value>1</value>
+      <value>2</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(464, 192)</value>
+      <value>(656, 192)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -429,7 +762,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(768, 112)</value>
+      <value>(960, 112)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -468,7 +801,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(320, 325)</value>
+      <value>(458, 378)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -494,6 +827,10 @@ of the input streams</value>
       <key>fs_in</key>
       <value>samp_rate</value>
     </param>
+    <param>
+      <key>skip</key>
+      <value>nskip</value>
+    </param>
   </block>
   <block>
     <key>kiwisdr_kiwi_wav_source</key>
@@ -515,11 +852,11 @@ of the input streams</value>
     </param>
     <param>
       <key>filename</key>
-      <value>20190212T041800Z_2558300_SM2KOT_iq.wav</value>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/WBHF/c.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(10, 432)</value>
+      <value>(10, 464)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -537,6 +874,10 @@ of the input streams</value>
       <key>minoutbuf</key>
       <value>0</value>
     </param>
+    <param>
+      <key>ref_freq</key>
+      <value>delta_f/2.0</value>
+    </param>
   </block>
   <block>
     <key>kiwisdr_kiwi_wav_source</key>
@@ -558,11 +899,11 @@ of the input streams</value>
     </param>
     <param>
       <key>filename</key>
-      <value>20190212T041800Z_2566300_SM2KOT_iq.wav</value>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/WBHF/h.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(10, 506)</value>
+      <value>(10, 570)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -580,6 +921,10 @@ of the input streams</value>
       <key>minoutbuf</key>
       <value>0</value>
     </param>
+    <param>
+      <key>ref_freq</key>
+      <value>delta_f/2.0</value>
+    </param>
   </block>
   <block>
     <key>kiwisdr_kiwi_wav_source</key>
@@ -601,7 +946,7 @@ of the input streams</value>
     </param>
     <param>
       <key>filename</key>
-      <value>20190212T041800Z_2550300_SM2KOT_iq.wav</value>
+      <value>/Users/chm/Software/gr-kiwisdr/examples/WBHF/l.wav</value>
     </param>
     <param>
       <key>_coordinate</key>
@@ -622,6 +967,10 @@ of the input streams</value>
     <param>
       <key>minoutbuf</key>
       <value>0</value>
+    </param>
+    <param>
+      <key>ref_freq</key>
+      <value>delta_f/2.0</value>
     </param>
   </block>
   <block>
@@ -648,11 +997,11 @@ of the input streams</value>
     </param>
     <param>
       <key>_enabled</key>
-      <value>True</value>
+      <value>1</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(517, 618)</value>
+      <value>(800, 549)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -660,7 +1009,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_rotation</key>
-      <value>270</value>
+      <value>0</value>
     </param>
     <param>
       <key>grid</key>
@@ -684,7 +1033,7 @@ of the input streams</value>
     </param>
     <param>
       <key>label1</key>
-      <value>relative phase #0-#1</value>
+      <value>relative phase #2-#1</value>
     </param>
     <param>
       <key>marker1</key>
@@ -732,7 +1081,7 @@ of the input streams</value>
     </param>
     <param>
       <key>label2</key>
-      <value>relative phase #1-#2</value>
+      <value>relative phase #0-#1</value>
     </param>
     <param>
       <key>marker2</key>
@@ -1003,11 +1352,11 @@ of the input streams</value>
     </param>
     <param>
       <key>fftsize</key>
-      <value>1024</value>
+      <value>1024*4</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(245, 117)</value>
+      <value>(416, 117)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1230,7 +1579,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(608, 266)</value>
+      <value>(906, 298)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1453,7 +1802,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(618, 458)</value>
+      <value>(1013, 490)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1676,7 +2025,7 @@ of the input streams</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(618, 362)</value>
+      <value>(949, 394)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -1876,6 +2225,42 @@ of the input streams</value>
     <sink_key>0</sink_key>
   </connection>
   <connection>
+    <source_block_id>blocks_skiphead_0</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blocks_skiphead_0_0</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blocks_skiphead_0_0_0</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>3</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blocks_skiphead_0_0_1</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>5</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blocks_skiphead_0_1</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>2</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>blocks_skiphead_0_2</source_block_id>
+    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>4</sink_key>
+  </connection>
+  <connection>
     <source_block_id>blocks_throttle_0</source_block_id>
     <sink_block_id>blocks_complex_to_float_0</sink_block_id>
     <source_key>0</source_key>
@@ -1925,20 +2310,38 @@ of the input streams</value>
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_0</source_block_id>
-    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <sink_block_id>blocks_skiphead_0_1</sink_block_id>
     <source_key>0</source_key>
-    <sink_key>1</sink_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>kiwisdr_kiwi_wav_source_0</source_block_id>
+    <sink_block_id>blocks_skiphead_0_0_0</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_1</source_block_id>
-    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <sink_block_id>blocks_skiphead_0_2</sink_block_id>
     <source_key>0</source_key>
-    <sink_key>2</sink_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>kiwisdr_kiwi_wav_source_1</source_block_id>
+    <sink_block_id>blocks_skiphead_0_0_1</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>kiwisdr_kiwi_wav_source_1_0</source_block_id>
-    <sink_block_id>kiwisdr_coh_stream_synth_0</sink_block_id>
+    <sink_block_id>blocks_skiphead_0</sink_block_id>
     <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>kiwisdr_kiwi_wav_source_1_0</source_block_id>
+    <sink_block_id>blocks_skiphead_0_0</sink_block_id>
+    <source_key>1</source_key>
     <sink_key>0</sink_key>
   </connection>
 </flow_graph>

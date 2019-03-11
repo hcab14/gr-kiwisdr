@@ -4,25 +4,57 @@
   <key>kiwisdr_coh_stream_synth</key>
   <category>[kiwisdr]</category>
   <import>import kiwisdr</import>
-  <make>kiwisdr.coh_stream_synth(3, $fs_in, $df_in)</make>
+  <make>kiwisdr.coh_stream_synth(3, $fs_in, $df_in, $skip)</make>
   <param>
-    <name>fs_in</name>
+    <name>nominal samp_rate</name>
     <key>fs_in</key>
     <value>12000</value>
     <type>int</type>
   </param>
   <param>
-    <name>df_in</name>
+    <name>delta f</name>
     <key>df_in</key>
     <value>8000</value>
     <type>int</type>
   </param>
+  <param>
+    <name>skip</name>
+    <key>skip</key>
+    <value>0</value>
+    <type>int</type>
+  </param>
 
   <sink>
-    <name>in</name>
+    <name>in#1</name>
     <type>complex</type>
-    <nports>3</nports>
+    <nports>1</nports>
   </sink>
+  <sink>
+    <name>ref#1</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+  <sink>
+    <name>in#2</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+  <sink>
+    <name>ref#2</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+  <sink>
+    <name>in#3</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+  <sink>
+    <name>ref#3</name>
+    <type>complex</type>
+    <nports>1</nports>
+  </sink>
+
 
   <source>
     <name>out</name>

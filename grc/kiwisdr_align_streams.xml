@@ -24,7 +24,17 @@
     <type>complex</type>
     <nports>$num_streams</nports>
   </sink>
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+    <nports>$num_streams</nports>
+  </sink>
 
+  <source>
+    <name>out</name>
+    <type>complex</type>
+    <nports>$num_streams</nports>
+  </source>
   <source>
     <name>out</name>
     <type>complex</type>

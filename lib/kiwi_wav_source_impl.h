@@ -121,23 +121,26 @@ static const pmt::pmt_t SAMP_RATE_KEY = pmt::string_to_symbol("samp_rate");
 class kiwi_wav_source_impl : public kiwi_wav_source
 {
 private:
-  std::string _filename;
-  std::shared_ptr<std::ifstream> _stream;
+  typedef std::shared_ptr<std::ifstream> stream_ptr_type;
+  std::string     _filename;
+  double          _ref_signal_freq;
+  stream_ptr_type _stream;
   std::streampos  _pos;
   wav::chunk_kiwi _kiwi_chunk;
   wav::chunk_kiwi _last_kiwi_chunk;
   std::uint64_t   _sample_counter;
   std::uint64_t   _chunk_counter;
   std::uint64_t   _num_samples_in_chunk;
-  double          _last_gnss_time;
-  bool            _use_new_gnss_solution;
+  double     _last_gnss_time;
+  bool       _use_new_gnss_solution;
+  double     _samp_rate;
   pmt::pmt_t _id;
 
-  gr_complex read_sample(bool& eof);
-  gr_complex get_next_sample(bool& kiwi_chunk, bool& eof);
+  gr_complex read_sample(gr_complex& ref_signal, bool& eof);
+  gr_complex get_next_sample(gr_complex& ref_signal, bool& has_kiwi_chunk, bool& eof);
 
 public:
-  kiwi_wav_source_impl(std::string filename);
+  kiwi_wav_source_impl(std::string filename, double ref_signal_freq);
   virtual ~kiwi_wav_source_impl();
 
   virtual bool start();

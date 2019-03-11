@@ -48,7 +48,7 @@ class KIWISDR_API kiwi_wav_source : virtual public gr::sync_block
    * class. kiwisdr::kiwi_wav_source::make is the public interface for
    * creating new instances.
    */
-  static sptr make(std::string filename);
+  static sptr make(std::string filename, double ref_signal_freq);
 };
 
 } // namespace kiwisdr

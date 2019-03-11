@@ -4,7 +4,7 @@
   <key>kiwisdr_kiwi_wav_source</key>
   <category>[kiwisdr]</category>
   <import>import kiwisdr</import>
-  <make>kiwisdr.kiwi_wav_source($filename)</make>
+  <make>kiwisdr.kiwi_wav_source($filename, $ref_freq)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
@@ -16,9 +16,19 @@
     <value></value>
     <type>file_open</type>
   </param>
+  <param>
+    <name>Reference signal frequency</name>
+    <key>ref_freq</key>
+    <value>0.0</value>
+  </param>
 
   <source>
     <name>out</name>
     <type>complex</type>
+  </source>
+  <source>
+    <name>ref</name>
+    <type>complex</type>
+    <optional>q</optional>
   </source>
 </block>
