@@ -44,6 +44,7 @@ class phase_estimator(gr.sync_block):
         z   = np.sum(in0[np.abs(in0) > 1e-5])
         az  = np.abs(z)
         z   = self._z0*(z/az if az != 0 else 1)
+        z = -1
         output_items[0][:] = z
         return len(input_items[0])
 
@@ -198,16 +199,16 @@ Inputs and outputs
         self._taps_resampler = taps_resampler = filter.firdes.low_pass_2(gain             = decim,
                                                                          sampling_freq    = 2.0,
                                                                          cutoff_freq      = 0.5/decim,
-                                                                         transition_width = 0.2/decim,
+                                                                         transition_width = 0.4/decim,
                                                                          attenuation_dB   = 80.0,
-                                                                         window           = filter.firdes.WIN_HAMMING)#filter.firdes.WIN_BLACKMAN_HARRIS)#
+                                                                         window           = filter.firdes.WIN_BLACKMAN_HARRIS)#filter.firdes.WIN_HAMMING)#
         self._rational_resamplers = [filter.rational_resampler_ccc(interpolation = 2*interp,
                                                                    decimation    = decim,
                                                                    taps          = (taps_resampler),
                                                                    fractional_bw = None) for _ in range(num_streams)]
         self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(gain             = (1+num_streams),
                                                              sampling_freq    = float((1+num_streams)*fsr),
-                                                             cutoff_freq      = 0.5*fsr, ## 0.495
+                                                             cutoff_freq      = 0.5*fsr,
                                                              transition_width = 0.2*fsr,
                                                              attenuation_dB   = 80.0,
                                                              window           = filter.firdes.WIN_BLACKMAN_HARRIS)
@@ -221,7 +222,7 @@ Inputs and outputs
         self._pfb_synthesizer.set_channel_map(channel_map)
 
         ## for testing
-        nskip = 0
+        nskip = 1
         self._skip = [blocks.skiphead(gr.sizeof_gr_complex, nskip),
                       blocks.skiphead(gr.sizeof_gr_complex, nskip),
                       blocks.skiphead(gr.sizeof_gr_complex, nskip)]
