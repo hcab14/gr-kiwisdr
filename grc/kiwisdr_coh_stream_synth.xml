@@ -30,13 +30,13 @@
     <nports>1</nports>
   </source>
   <source>
-    <name>in_resamp</name>
+    <name>resamp</name>
     <type>complex</type>
     <nports>3</nports>
     <optional>1</optional>
   </source>
   <source>
-    <name>phase_off</name>
+    <name>phase_qa</name>
     <type>complex</type>
     <nports>2</nports>
     <optional>1</optional>
