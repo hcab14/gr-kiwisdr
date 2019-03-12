@@ -390,7 +390,7 @@ of the input streams</value>
     </param>
     <param>
       <key>samples_per_second</key>
-      <value>4*delta_f</value>
+      <value>4*delta_f*2</value>
     </param>
     <param>
       <key>type</key>
@@ -445,7 +445,7 @@ of the input streams</value>
     </param>
     <param>
       <key>samp_rate</key>
-      <value>4*delta_f</value>
+      <value>4*delta_f*2</value>
     </param>
   </block>
   <block>
@@ -979,7 +979,7 @@ of the input streams</value>
     </param>
     <param>
       <key>bw</key>
-      <value>delta_f*4</value>
+      <value>delta_f*4*2</value>
     </param>
     <param>
       <key>alias</key>
@@ -1202,7 +1202,7 @@ of the input streams</value>
     </param>
     <param>
       <key>bw</key>
-      <value>delta_f</value>
+      <value>delta_f*2</value>
     </param>
     <param>
       <key>alias</key>
@@ -1425,7 +1425,7 @@ of the input streams</value>
     </param>
     <param>
       <key>bw</key>
-      <value>delta_f</value>
+      <value>delta_f*2</value>
     </param>
     <param>
       <key>alias</key>
@@ -1648,7 +1648,7 @@ of the input streams</value>
     </param>
     <param>
       <key>bw</key>
-      <value>delta_f</value>
+      <value>delta_f*2</value>
     </param>
     <param>
       <key>alias</key>

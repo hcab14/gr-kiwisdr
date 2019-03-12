@@ -81,9 +81,9 @@ class phase_offset_corrector(gr.hier_block2):
         self._v2sA = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
         self._v2sB = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
 
-        ## why are the needed phase offsets exp(1j*pi)?
-        self._pA = phase_estimator(vlen, decim, -1)
-        self._pB = phase_estimator(vlen, decim, -1)
+        ## phase offsets depend on the combination of resampling and pfb_synth filter
+        self._pA = phase_estimator(vlen, decim, 1.0)
+        self._pB = phase_estimator(vlen, decim, 1.0)
 
         self._kludge = blocks.skiphead(gr.sizeof_gr_complex, 0)
 
@@ -195,27 +195,29 @@ Inputs and outputs
 
         self._phase_offset_corrector = phase_offset_corrector(num_streams, fs_in, delta_f_in)
 
-        self._taps_resampler = taps_resampler = filter.firdes.low_pass(gain             = decim,
-                                                                       sampling_freq    = 1.0,
-                                                                       cutoff_freq      = 0.50/decim,
-                                                                       transition_width = 0.01/decim,
-                                                                       window           = filter.firdes.WIN_HAMMING)
-        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation = interp,
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass_2(gain             = decim,
+                                                                         sampling_freq    = 2.0,
+                                                                         cutoff_freq      = 0.5/decim,
+                                                                         transition_width = 0.2/decim,
+                                                                         attenuation_dB   = 80.0,
+                                                                         window           = filter.firdes.WIN_HAMMING)#filter.firdes.WIN_BLACKMAN_HARRIS)#
+        self._rational_resamplers = [filter.rational_resampler_ccc(interpolation = 2*interp,
                                                                    decimation    = decim,
                                                                    taps          = (taps_resampler),
                                                                    fractional_bw = None) for _ in range(num_streams)]
         self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(gain             = (1+num_streams),
                                                              sampling_freq    = float((1+num_streams)*fsr),
-                                                             cutoff_freq      = 0.495*fsr, ## 0.495
-                                                             transition_width = 0.01*fsr,
+                                                             cutoff_freq      = 0.5*fsr, ## 0.495
+                                                             transition_width = 0.2*fsr,
                                                              attenuation_dB   = 80.0,
                                                              window           = filter.firdes.WIN_BLACKMAN_HARRIS)
 
         self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 1+num_streams,
                                                            taps     = (taps_pfb),
-                                                           twox     = False)
+                                                           twox     = True)
         channel_map = [num_streams]
         channel_map.extend(range(num_streams))
+        channel_map = [7,0,1]
         self._pfb_synthesizer.set_channel_map(channel_map)
 
         ## for testing
