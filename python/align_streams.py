@@ -36,8 +36,8 @@ class find_offsets(gr.sync_block):
             in_sig  = num_streams*(np.complex64,),
             out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
-        self._fs          = 12e3*np.zeros(num_streams, dtype=np.float64) ## is set from 'rx_rate' tags
-        self._tags        = num_streams*[[]]
+        self._fs          = np.zeros(num_streams, dtype=np.float64) ## is set from 'rx_rate' tags
+        self._tags        = [[] for _ in range(num_streams)]
         self._port_delay  = pmt.intern('delay')
         self._port_fs     = pmt.intern('fs')
         self._pmt_align   = pmt.intern('align')
@@ -83,10 +83,10 @@ class find_offsets(gr.sync_block):
             offsets = np.zeros(self._num_streams, dtype=np.int)
             offsets[0]  = 0
             offsets[1:] = np.round(ds)
-            if np.max(offsets)<40000 and np.max(np.abs(offsets[1:]-ds)) < 0.2:
+            if np.max(np.abs(offsets)) < 5*self._fs[0] and np.max(np.abs(offsets[1:]-ds)) < 0.2:
                 ## publish the offsets to the message port
-                msg_out  = pmt.make_dict()
                 offsets -= np.min(offsets)
+                msg_out  = pmt.make_dict()
                 msg_out  = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in offsets]))
                 self.message_port_pub(self._port_delay, msg_out)
             else:
@@ -100,7 +100,7 @@ class find_offsets(gr.sync_block):
 
 class delay_proxy(gr.sync_block):
     """
-    Pure message handling block containing an array of delay blocks.
+    gr.sync_block (pass-through) containing an array of delay blocks.
     Delays are set via message parsing.
     """
     def __init__(self, num_streams):
@@ -120,13 +120,13 @@ class delay_proxy(gr.sync_block):
         return self._delays[i]
 
     def work(self, input_items, output_items):
+        ## make sure a message is received before the 1st sample is passed through
         if not self._got_message:
             return 0
-        n = len(output_items[0])
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
+        return len(output_items[0])
 
-        return n
     def msg_handler_delay(self, msg_in):
         msg = pmt.to_python(msg_in)
         delays = msg['delays']

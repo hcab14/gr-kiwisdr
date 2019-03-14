@@ -48,7 +48,6 @@ kiwi_wav_source_impl::kiwi_wav_source_impl(std::string filename)
   , _kiwi_chunk()
   , _last_kiwi_chunk()
   , _sample_counter(0)
-  , _num_samples_in_chunk(0)
   , _last_gnss_time(0)
   , _use_new_gnss_solution(false)
   , _samp_rate(1)
@@ -66,7 +65,6 @@ bool kiwi_wav_source_impl::start()
 {
   _sample_counter = 0;
   _chunk_counter = 0;
-  _num_samples_in_chunk = 0;
   _use_new_gnss_solution = false;
   _stream = std::make_shared<std::ifstream>(_filename.c_str(), std::ios::binary);
   if (!_stream || !(*_stream)) {
@@ -107,12 +105,12 @@ bool kiwi_wav_source_impl::start()
         return false;
       }
       // skip the first two chunks
-      for (int i=0; i<2*512; ++i) {
+      for (int i=0; i<2*SAMPLES_PER_CHUNK; ++i) {
         bool has_kiwi_chunk=false, eof=false;
         get_next_sample(has_kiwi_chunk, eof);
         if (eof)
           return false;
-        if ((i%512) == 0) {
+        if ((i%SAMPLES_PER_CHUNK) == 0) {
           if (!has_kiwi_chunk)
             return false;
           _last_kiwi_chunk = _kiwi_chunk;
@@ -135,7 +133,6 @@ bool kiwi_wav_source_impl::stop()
   _pos = 0;
   _sample_counter = 0;
   _chunk_counter = 0;
-  _num_samples_in_chunk = 0;
   _use_new_gnss_solution = false;
   return true;
 }
@@ -148,7 +145,7 @@ gr_complex kiwi_wav_source_impl::read_sample(bool& eof) {
     eof = true;
     return gr_complex(0,0);
   }  else {
-    if (++_sample_counter == _num_samples_in_chunk)
+    if (++_sample_counter == SAMPLES_PER_CHUNK)
       _sample_counter = 0;
     return gr_complex(i/32768.0f, q/32768.0f);
   }
@@ -164,7 +161,7 @@ gr_complex kiwi_wav_source_impl::get_next_sample(bool& has_kiwi_chunk, bool& eof
       return gr_complex(0,0);
     }
     if (c.id() == "data") {
-      _num_samples_in_chunk = c.size()/4;
+      assert(c.size()/4 == SAMPLES_PER_CHUNK);
       return read_sample(eof);
     } else if (c.id() == "kiwi") {
       _stream->seekg(_pos);
@@ -180,7 +177,7 @@ gr_complex kiwi_wav_source_impl::get_next_sample(bool& has_kiwi_chunk, bool& eof
       GR_LOG_WARN(d_logger, str(boost::format("skipping unknown chunk '%s' len=%d") % c.id() % c.size()));
       _stream->seekg(_stream->tellg() + c.size());
     }
-  } else if (_sample_counter < _num_samples_in_chunk) {
+  } else if (_sample_counter < SAMPLES_PER_CHUNK) {
     return read_sample(eof);
   }
   GR_LOG_FATAL(d_logger, "this point shoud be never reached");
@@ -195,7 +192,7 @@ int kiwi_wav_source_impl::work(int noutput_items,
   int nout = 0;
   for (nout=0; nout<noutput_items;) {
     bool eof=false, has_kiwi_chunk=false;
-    out_iq[nout] = get_next_sample(has_kiwi_chunk, eof);
+    gr_complex const iq = get_next_sample(has_kiwi_chunk, eof);
     if (eof)
       return WORK_DONE;
     if (has_kiwi_chunk) {
@@ -208,7 +205,7 @@ int kiwi_wav_source_impl::work(int noutput_items,
       if (not _use_new_gnss_solution || (_kiwi_chunk.last_gnss_solution() > _last_kiwi_chunk.last_gnss_solution())) {
         double delta_t = gnss_time - _last_gnss_time;
         delta_t += (delta_t < 0)*7*24*3600; // GNSS week rollover
-        _samp_rate = 512*_chunk_counter/delta_t;
+        _samp_rate = SAMPLES_PER_CHUNK*_chunk_counter/delta_t;
         add_item_tag(0, nitems_written(0)+nout, RATE_KEY, pmt::from_double(_samp_rate), _id);
         _last_gnss_time = gnss_time;
         _chunk_counter = 0;
@@ -217,7 +214,7 @@ int kiwi_wav_source_impl::work(int noutput_items,
       _last_kiwi_chunk = _kiwi_chunk;
       ++_chunk_counter;
     } else {
-      ++nout;
+      out_iq[nout++] = iq;
     }
   }
   return nout;

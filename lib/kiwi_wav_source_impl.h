@@ -117,6 +117,7 @@ private:
 
 static const pmt::pmt_t TIME_KEY = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
 static const pmt::pmt_t RATE_KEY = pmt::string_to_symbol("rx_rate");
+static const int SAMPLES_PER_CHUNK = 512;
 
 class kiwi_wav_source_impl : public kiwi_wav_source
 {
@@ -129,7 +130,6 @@ private:
   wav::chunk_kiwi _last_kiwi_chunk;
   std::uint64_t   _sample_counter;
   std::uint64_t   _chunk_counter;
-  std::uint64_t   _num_samples_in_chunk;
   double     _last_gnss_time;
   bool       _use_new_gnss_solution;
   double     _samp_rate;

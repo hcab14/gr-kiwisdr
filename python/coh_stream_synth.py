@@ -137,7 +137,7 @@ class phase_offset_corrector(gr.hier_block2):
 
 class rotator_proxy(gr.sync_block):
     """
-    Pure message handling block containing an array of rotator_cc blocks
+    gr.sync_block (pass-through) containing an array of rotator_cc blocks
     Phase increments are set via message parsing
     """
     def __init__(self, num_streams, fs, df):
@@ -160,12 +160,12 @@ class rotator_proxy(gr.sync_block):
         return self._rotators[i]
 
     def work(self, input_items, output_items):
+        ## make sure a message is received before the 1st sample is passed through
         if not self._got_message:
             return 0
-        n = len(output_items[0])
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
-        return n
+        return len(output_items[0])
 
     def msg_handler_rotator(self, msg_in):
         msg = pmt.to_python(msg_in)
