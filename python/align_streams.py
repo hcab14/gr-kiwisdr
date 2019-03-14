@@ -47,11 +47,12 @@ class find_offsets(gr.sync_block):
 
     def work(self, input_items, output_items):
         n = len(input_items[0])
+        all_tags = [self.get_tags_in_window(i, 0, n) for i in range(self._num_streams)]
 
         ## (1) 'rx_rate' tags
         tags_ok = [False]*self._num_streams
         for i in range(self._num_streams):
-            tags = self.get_tags_in_window(i, 0, n, pmt.intern('rx_rate'))
+            tags = [t for t in all_tags[i] if pmt.to_python(t.key) == 'rx_rate']
             if len(tags) != 0:
                 self._fs[i] = np.mean(np.array([pmt.to_python(t.value) for t in tags], dtype=np.float64))
                 tags_ok[i] = True
@@ -64,7 +65,8 @@ class find_offsets(gr.sync_block):
         tags_ok = [False]*self._num_streams
         f       = lambda x : np.float64(x[0])+x[1]
         for i in range(self._num_streams):
-            for tag in self.get_tags_in_window(i, 0, n, pmt.intern('rx_time')):
+            tags = [t for t in all_tags[i] if pmt.to_python(t.key) == 'rx_time']
+            for tag in tags:
                 self._tags[i].extend([{'samp_num' : tag.offset,
                                        'gnss_sec' : f(pmt.to_python(tag.value))}])
             tags_ok[i] = (self._tags[i] != [])
@@ -85,7 +87,7 @@ class find_offsets(gr.sync_block):
             offsets[1:] = np.round(ds)
             if np.max(np.abs(offsets)) < 5*self._fs[0] and np.max(np.abs(offsets[1:]-ds)) < 0.2:
                 ## publish the offsets to the message port
-                offsets -= np.min(offsets)
+                offsets -= np.max(offsets)
                 msg_out  = pmt.make_dict()
                 msg_out  = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in offsets]))
                 self.message_port_pub(self._port_delay, msg_out)
@@ -125,7 +127,7 @@ class delay_proxy(gr.sync_block):
             return 0
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
-        return len(output_items[0])
+        return len(input_items[0])
 
     def msg_handler_delay(self, msg_in):
         msg = pmt.to_python(msg_in)

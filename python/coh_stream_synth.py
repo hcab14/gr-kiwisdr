@@ -46,7 +46,7 @@ class phase_estimator(gr.sync_block):
 
     def work(self, input_items, output_items):
         in0 = input_items[0]
-        z   = np.sum(in0[np.abs(in0) > 1e-5])
+        z   = np.sum(in0)
         az  = np.abs(z)
         z   = self._z0*(z/az if az != 0 else 1)
         output_items[0][:] = z
@@ -57,83 +57,48 @@ class phase_offset_corrector(gr.hier_block2):
     Corrects phase offsets between IQ data streams, assuming that there is no phase drift.
     For this the relative phases between streams are obtained from overlapping regions of the spectra.
     """
-    def __init__(self, num_streams, samp_rate):
+    def __init__(self, samp_rate):
         gr.hier_block2.__init__(
             self,
             'phase_offset_corrector',
-            gr.io_signature(  num_streams,     num_streams,   gr.sizeof_gr_complex),
-            gr.io_signature(2*num_streams-1, 2*num_streams-1, gr.sizeof_gr_complex))
-
-        ## for now we can handle only exactly three streams
-        assert(num_streams == 3)
+            gr.io_signature(2, 2, gr.sizeof_gr_complex),
+            gr.io_signature(2, 2, gr.sizeof_gr_complex))
 
         ## the overlapping parts of the spectra are processed at a lower sampling rate
         decim   = 5
         delta_f = float(samp_rate)/4.0
         self._taps = taps = filter.firdes.low_pass(1, samp_rate, 0.05*samp_rate, 0.02*samp_rate)
-        self._xlAplus   = filter.freq_xlating_fir_filter_ccf(decim, (taps), +delta_f, samp_rate)
-        self._xlAminus  = filter.freq_xlating_fir_filter_ccf(decim, (taps), -delta_f, samp_rate)
-        self._xlBplus   = filter.freq_xlating_fir_filter_ccf(decim, (taps), +delta_f, samp_rate)
-        self._xlBminus  = filter.freq_xlating_fir_filter_ccf(decim, (taps), -delta_f, samp_rate)
-        self._mult_ccA1 = blocks.multiply_conjugate_cc(1)
-        self._mult_ccB1 = blocks.multiply_conjugate_cc(1)
-        self._mult_ccA2 = blocks.multiply_conjugate_cc(1)
-        self._mult_ccB2 = blocks.multiply_conjugate_cc(1)
+        self._xlplus   = filter.freq_xlating_fir_filter_ccf(decim, (taps), +delta_f, samp_rate)
+        self._xlminus  = filter.freq_xlating_fir_filter_ccf(decim, (taps), -delta_f, samp_rate)
+        self._mult_ccA = blocks.multiply_conjugate_cc(1)
+        self._mult_ccB = blocks.multiply_conjugate_cc(1)
 
         vlen = int(np.power(2, np.ceil(np.log2(0.1*samp_rate/decim))))
-        self._s2vA = blocks.stream_to_vector(gr.sizeof_gr_complex, vlen)
-        self._s2vB = blocks.stream_to_vector(gr.sizeof_gr_complex, vlen)
-        self._v2sA = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
-        self._v2sB = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
+        self._s2v = blocks.stream_to_vector(gr.sizeof_gr_complex, vlen)
+        self._v2s = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
 
         ## phase offsets depend on the combination of resampling and pfb_synth filter
-        self._pA = phase_estimator(vlen, decim, 1.0)
         self._pB = phase_estimator(vlen, decim, 1.0)
 
-        self._kludge = blocks.skiphead(gr.sizeof_gr_complex, 0)
-
-        ## [0,+delta_f]
-        self.connect((self, 2),
-                     (self._xlAminus),
-                     (self._mult_ccA1, 0))
-        self.connect((self, 1),
-                     (self._xlAplus),
-                     (self._mult_ccA1, 1))
-        self.connect((self._mult_ccA1),
-                     (self._s2vA),
-                     (self._pA),
-                     (self._v2sA),
-                     (self._mult_ccA2, 1))
-        self.connect((self, 2),
-                     (self._mult_ccA2, 0))
-        self.connect((self._mult_ccA2),
-                     (self, 2))
-
-        ## 0 (pass-through)
-        self.connect((self, 1),
-                     (self._kludge),
-                     (self, 1))
-
-        ## [-delta_f,0]
+        ## output = conj([conj(#0) * #1]) * #1
         self.connect((self, 0),
-                     (self._xlBplus),
-                     (self._mult_ccB1, 0))
+                     (self._xlplus),
+                     (self._mult_ccA, 1))
         self.connect((self, 1),
-                     (self._xlBminus),
-                     (self._mult_ccB1, 1))
-        self.connect((self._mult_ccB1),
-                     (self._s2vB),
+                     (self._xlminus),
+                     (self._mult_ccA, 0))
+        self.connect((self._mult_ccA),
+                     (self._s2v),
                      (self._pB),
-                     (self._v2sB),
-                     (self._mult_ccB2, 1))
-        self.connect((self, 0),
-                     (self._mult_ccB2, 0))
-        self.connect((self._mult_ccB2),
+                     (self._v2s),
+                     (self._mult_ccB, 1))
+        self.connect((self, 1),
+                     (self._mult_ccB, 0))
+        self.connect((self._mult_ccB),
                      (self, 0))
 
         ## phase offsets
-        self.connect((self._v2sB), (self, 3)) ## (f0-df , f0)
-        self.connect((self._v2sA), (self, 4)) ## (f0 , f0+df)
+        self.connect((self._v2s), (self, 1))
 
 class rotator_proxy(gr.sync_block):
     """
@@ -162,10 +127,11 @@ class rotator_proxy(gr.sync_block):
     def work(self, input_items, output_items):
         ## make sure a message is received before the 1st sample is passed through
         if not self._got_message:
+            gr.log.info('delay_proxy 0')
             return 0
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
-        return len(output_items[0])
+        return len(input_items[0])
 
     def msg_handler_rotator(self, msg_in):
         msg = pmt.to_python(msg_in)
@@ -228,7 +194,8 @@ Inputs and outputs
         channel_map = [7,0,1]
         self._pfb_synthesizer.set_channel_map(channel_map)
 
-        self._poc = phase_offset_corrector(num_streams, 2*delta_f_in)
+        self._poc = [phase_offset_corrector(2*delta_f_in) for _ in range(1,num_streams)]
+
         self._rational_resampler = filter.rational_resampler_ccf(1,2)
 
         for i in range(num_streams):
@@ -236,15 +203,39 @@ Inputs and outputs
                          (self._align_streams, i),
                          (self._rotators, i),
                          (self._rotators.get(i)),
-                         (self._rational_resamplers[i], 0),
-                         (self._poc, i),
-                         (self._pfb_synthesizer, i))
-            self.connect((self._poc, i),
-                         (self, 1+i))
-        self.connect((self._pfb_synthesizer, 0), (self._rational_resampler), (self, 0))
+                         (self._rational_resamplers[i]))
 
-        for i in range(num_streams-1):
-            self.connect((self._poc, num_streams+i), (self, num_streams+1+i))
+        ## the phase offset corrector are cascading:
+        ## #0 ---------------------- 0
+        self.connect((self._rational_resamplers[0]),
+                     (self._pfb_synthesizer, 0))
+        ## (#0,#1) -> poc[0] ------- 1
+        self.connect((self._rational_resamplers[0]),
+                     (self._poc[0], 0))
+        self.connect((self._rational_resamplers[1]),
+                     (self._poc[0], 1))
+        self.connect((self._poc[0], 0),
+                     (self._pfb_synthesizer, 1))
+        ## (poc[0],#2) -> poc[1] --- 2
+        ## (poc[1],#3) -> poc[2] --- 3
+        ## ...
+        for i in range(2,num_streams):
+            self.connect((self._poc[i-2], 0),
+                         (self._poc[i-1], 0))
+            self.connect((self._rational_resamplers[i]),
+                         (self._poc[i-1], 1))
+            self.connect((self._poc[i-1], 0),
+                         (self._pfb_synthesizer, i))
+
+        ## resampled coherent input streams + rel. phase offsets
+        self.connect((self._rational_resamplers[0]),
+                     (self, 1))
+        for i in range(1,num_streams):
+            self.connect((self._poc[i-1], 0), (self, 1+i))
+            self.connect((self._poc[i-1], 1), (self, num_streams+i))
+
+        ## combined IQ output stream
+        self.connect((self._pfb_synthesizer, 0), (self._rational_resampler), (self, 0))
 
         self.msg_connect((self._align_streams.get_find_offsets(), 'fs'), (self._rotators, 'fs'))
 

@@ -63,6 +63,7 @@ kiwi_wav_source_impl::~kiwi_wav_source_impl()
 
 bool kiwi_wav_source_impl::start()
 {
+  gr::thread::scoped_lock lock(d_setlock);
   _sample_counter = 0;
   _chunk_counter = 0;
   _use_new_gnss_solution = false;
@@ -105,17 +106,19 @@ bool kiwi_wav_source_impl::start()
         return false;
       }
       // skip the first two chunks
-      for (int i=0; i<2*SAMPLES_PER_CHUNK; ++i) {
+      for (int i=0; i<2*SAMPLES_PER_CHUNK;) {
         bool has_kiwi_chunk=false, eof=false;
         get_next_sample(has_kiwi_chunk, eof);
         if (eof)
           return false;
-        if ((i%SAMPLES_PER_CHUNK) == 0) {
-          if (!has_kiwi_chunk)
-            return false;
+        if (has_kiwi_chunk) {
+          if ((i%SAMPLES_PER_CHUNK) != 0)
+            GR_LOG_WARN(d_logger, "kiwi_chunk expected and not found!");
           _last_kiwi_chunk = _kiwi_chunk;
           _last_gnss_time  = _kiwi_chunk.as_double();
-          ++_chunk_counter;
+          _chunk_counter = 1;
+        } else {
+          ++i;
         }
       }
       return true;
@@ -129,6 +132,7 @@ bool kiwi_wav_source_impl::start()
 
 bool kiwi_wav_source_impl::stop()
 {
+  gr::thread::scoped_lock lock(d_setlock);
   _stream.reset();
   _pos = 0;
   _sample_counter = 0;
@@ -188,6 +192,7 @@ int kiwi_wav_source_impl::work(int noutput_items,
                                gr_vector_const_void_star &input_items,
                                gr_vector_void_star &output_items)
 {
+  gr::thread::scoped_lock lock(d_setlock);
   gr_complex *out_iq  = (gr_complex *)output_items[0];
   int nout = 0;
   for (nout=0; nout<noutput_items;) {
