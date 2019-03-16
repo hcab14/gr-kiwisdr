@@ -193,7 +193,7 @@ int kiwi_wav_source_impl::work(int noutput_items,
                                gr_vector_void_star &output_items)
 {
   gr::thread::scoped_lock lock(d_setlock);
-  gr_complex *out_iq  = (gr_complex *)output_items[0];
+  gr_complex *out_iq = (gr_complex *)output_items[0];
   int nout = 0;
   for (nout=0; nout<noutput_items;) {
     bool eof=false, has_kiwi_chunk=false;

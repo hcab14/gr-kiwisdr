@@ -4,7 +4,7 @@
   <key>kiwisdr_coh_stream_synth</key>
   <category>[kiwisdr]</category>
   <import>import kiwisdr</import>
-  <make>kiwisdr.coh_stream_synth(3, $fs_in, $df_in)</make>
+  <make>kiwisdr.coh_stream_synth($num_streams, $fs_in, $df_in)</make>
   <param>
     <name>fs_in</name>
     <key>fs_in</key>
@@ -17,11 +17,17 @@
     <value>8000</value>
     <type>int</type>
   </param>
+  <param>
+    <name>num_streams</name>
+    <key>num_streams</key>
+    <value>3</value>
+    <type>int</type>
+  </param>
 
   <sink>
     <name>in</name>
     <type>complex</type>
-    <nports>3</nports>
+    <nports>$num_streams</nports>
   </sink>
 
   <source>
@@ -32,13 +38,13 @@
   <source>
     <name>resamp</name>
     <type>complex</type>
-    <nports>3</nports>
+    <nports>$num_streams</nports>
     <optional>1</optional>
   </source>
   <source>
     <name>phase_qa</name>
     <type>complex</type>
-    <nports>2</nports>
+    <nports>$num_streams-1</nports>
     <optional>1</optional>
   </source>
 </block>

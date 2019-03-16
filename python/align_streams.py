@@ -38,6 +38,7 @@ class find_offsets(gr.sync_block):
         self._num_streams = num_streams
         self._fs          = np.zeros(num_streams, dtype=np.float64) ## is set from 'rx_rate' tags
         self._tags        = [[] for _ in range(num_streams)]
+        self._delays      = np.zeros(num_streams, dtype=np.int)
         self._port_delay  = pmt.intern('delay')
         self._port_fs     = pmt.intern('fs')
         self._pmt_align   = pmt.intern('align')
@@ -45,8 +46,15 @@ class find_offsets(gr.sync_block):
         self.message_port_register_out(self._port_fs)
         self.set_tag_propagation_policy(gr.TPP_ONE_TO_ONE)
 
+    def start(self):
+        self._delays[:] = 0
+        self._fs[:]     = 0
+        self._tags      = [[] for _ in range(self._num_streams)]
+        return True
+
     def work(self, input_items, output_items):
         n = len(input_items[0])
+
         all_tags = [self.get_tags_in_window(i, 0, n) for i in range(self._num_streams)]
 
         ## (1) 'rx_rate' tags
@@ -69,25 +77,36 @@ class find_offsets(gr.sync_block):
             for tag in tags:
                 self._tags[i].extend([{'samp_num' : tag.offset,
                                        'gnss_sec' : f(pmt.to_python(tag.value))}])
+            #gr.log.info('tags[{}] = {}'.format(i,self._tags[i][0]))
             tags_ok[i] = (self._tags[i] != [])
 
         ## (3) compute delays for aligning the streams
         while all(tags_ok):
             ## compute differences w.r.t 1st in number of samples
             fd = lambda x,y,fsx,fsy: x['gnss_sec']-y['gnss_sec'] - (x['samp_num']/fsx-y['samp_num']/fsy)
-            ds = np.array([fd(self._tags[i][0], self._tags[0][0], self._fs[i], self._fs[0])
+            ds = np.array([fd(self._tags[i][0], self._tags[0][0], self._fs[i], self._fs[0]) + self._delays[i]/self._fs[i]-self._delays[0]/self._fs[0]
                            for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
             ## remove the processed tags and update tags_ok
             for i in range(self._num_streams):
                 self._tags[i] =  self._tags[i][1:]
                 tags_ok[i]    = (self._tags[i] != [])
-            ## compute offsets avoiding negative delays
+            ## compute offsets
             offsets = np.zeros(self._num_streams, dtype=np.int)
             offsets[0]  = 0
             offsets[1:] = np.round(ds)
             if np.max(np.abs(offsets)) < 5*self._fs[0] and np.max(np.abs(offsets[1:]-ds)) < 0.2:
-                ## publish the offsets to the message port
+                ## delay blocks have a problem with large positive delays
                 offsets -= np.max(offsets)
+                ## reduce delays for delay blocks to <= 512 samples
+                if np.max(-offsets) > 512:
+                    for i in range(self._num_streams):
+                        to_consume = min(int(512*np.floor(-offsets[i]/512)), len(input_items[i]))
+                        #gr.log.info('to_consume[{}] = {}'.format(i, to_consume))
+                        self.consume(i, to_consume)
+                        self._delays[i] += to_consume
+                        self._tags[i] = []
+                    return 0
+                ## publish the offsets to the message port
                 msg_out  = pmt.make_dict()
                 msg_out  = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in offsets]))
                 self.message_port_pub(self._port_delay, msg_out)
@@ -124,6 +143,7 @@ class delay_proxy(gr.sync_block):
     def work(self, input_items, output_items):
         ## make sure a message is received before the 1st sample is passed through
         if not self._got_message:
+            #gr.log.info('delay_proxy 0')
             return 0
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
@@ -132,6 +152,7 @@ class delay_proxy(gr.sync_block):
     def msg_handler_delay(self, msg_in):
         msg = pmt.to_python(msg_in)
         delays = msg['delays']
+        #gr.log.info('delays={}'.format(delays))
         for i,d in enumerate(delays):
             self._delays[i].set_dly(d)
         self._got_message = True

@@ -25,6 +25,7 @@ from gnuradio import gr
 from gnuradio import gru
 from gnuradio import filter
 from gnuradio import blocks
+from gnuradio import analog
 
 import pmt
 
@@ -78,7 +79,7 @@ class phase_offset_corrector(gr.hier_block2):
         self._v2s = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
 
         ## phase offsets depend on the combination of resampling and pfb_synth filter
-        self._pB = phase_estimator(vlen, decim, 1.0)
+        self._pB = phase_estimator(vlen, decim, np.exp(2j*np.pi*0.0))
 
         ## output = conj([conj(#0) * #1]) * #1
         self.connect((self, 0),
@@ -127,7 +128,6 @@ class rotator_proxy(gr.sync_block):
     def work(self, input_items, output_items):
         ## make sure a message is received before the 1st sample is passed through
         if not self._got_message:
-            gr.log.info('delay_proxy 0')
             return 0
         for i in range(self._num_streams):
             output_items[i][:] = input_items[i]
@@ -137,11 +137,45 @@ class rotator_proxy(gr.sync_block):
         msg = pmt.to_python(msg_in)
         fs = msg['fs']
         n  = self._num_streams
-        m  = (n-1)/2
-        phase_inc = 2*np.pi * self._df * (1.0/fs-1.0/self._fs) * np.linspace(-m,m,n)
-        for i,p in enumerate(phase_inc):
-            self._rotators[i].set_phase_inc(p)
+        m  = (n-1)//2
+        off = np.arange(n)-m
+        for i in range(n):
+            phase_inc = 2*np.pi * self._df * (1.0/fs[i]-1.0/self._fs) * off[i]
+            self._rotators[i].set_phase_inc(phase_inc)
         self._got_message = True
+
+
+class final_processing(gr.hier_block2):
+    """
+    TODO
+    """
+    def __init__(self, num_streams, delta_f_in):
+        gr.hier_block2.__init__(
+            self,
+            'final_processing',
+            gr.io_signature(1, 1, gr.sizeof_gr_complex),
+            gr.io_signature(1, 1, gr.sizeof_gr_complex))
+
+        blk_last = (self, 0)
+        if (num_streams%2) == 0:
+            self._mult_conj = blocks.multiply_conjugate_cc(1)
+            self._carrier   = analog.sig_source_c(sampling_freq = 8*delta_f_in,
+                                                  waveform      = analog.GR_COS_WAVE,
+                                                  wave_freq     = delta_f_in,
+                                                  ampl          = 1.0,
+                                                  offset        = 0.0)
+            self.connect(blk_last,
+                         (self._mult_conj, 0))
+            self.connect((self._carrier),
+                         (self._mult_conj, 1))
+            blk_last = self._mult_conj
+
+        if num_streams <= 3:
+            self._final_resamp = filter.rational_resampler_ccf(1,2)
+            self.connect(blk_last, (self._final_resamp))
+            blk_last = self._final_resamp
+
+        self.connect(blk_last, (self, 0))
 
 class coh_stream_synth(gr.hier_block2):
     """
@@ -160,9 +194,9 @@ Inputs and outputs
         gr.hier_block2.__init__(
             self,
             'coh_stream_synth',
-            gr.io_signature(num_streams,   num_streams,   gr.sizeof_gr_complex),
-            gr.io_signature(num_streams+3, num_streams+3, gr.sizeof_gr_complex))
-        assert(num_streams == 3)
+            gr.io_signature(  num_streams,   num_streams, gr.sizeof_gr_complex),
+            gr.io_signature(2*num_streams, 2*num_streams, gr.sizeof_gr_complex))
+        assert(num_streams >= 2 and num_streams <= 6)
         fsr    = delta_f_in
         factor = gru.gcd(fsr, fs_in)
         interp = fsr/factor
@@ -171,7 +205,7 @@ Inputs and outputs
         self._align_streams = align_streams(num_streams)
         self._rotators      = rotator_proxy(num_streams, fs_in, delta_f_in)
 
-        self._taps_resampler = taps_resampler = filter.firdes.low_pass_2(gain             = decim,
+        self._taps_resampler = taps_resampler = filter.firdes.low_pass_2(gain             = 2*interp,
                                                                          sampling_freq    = 2.0,
                                                                          cutoff_freq      = 0.5/decim,
                                                                          transition_width = 0.4/decim,
@@ -181,22 +215,30 @@ Inputs and outputs
                                                                    decimation    = decim,
                                                                    taps          = (taps_resampler),
                                                                    fractional_bw = None) for _ in range(num_streams)]
-        self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(gain             = (1+num_streams),
-                                                             sampling_freq    = float((1+num_streams)*fsr),
+        self._taps_pfb = taps_pfb = filter.firdes.low_pass_2(gain             = 4,
+                                                             sampling_freq    = 4*fsr,
                                                              cutoff_freq      = 0.5*fsr,
                                                              transition_width = 0.2*fsr,
                                                              attenuation_dB   = 80.0,
                                                              window           = filter.firdes.WIN_BLACKMAN_HARRIS)
 
-        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 1+num_streams,
+        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 4,
                                                            taps     = (taps_pfb),
                                                            twox     = True)
-        channel_map = [7,0,1]
+        channel_map = []
+        if num_streams == 2:
+            channel_map = [0,1]
+        if num_streams == 3:
+            channel_map = [7,0,1]
+        if num_streams == 4:
+            channel_map = [7,0,1,2]
+        if num_streams == 5:
+            channel_map = [6,7,0,1,2]
+        if num_streams == 6:
+            channel_map = [6,7,0,1,2,3]
         self._pfb_synthesizer.set_channel_map(channel_map)
 
         self._poc = [phase_offset_corrector(2*delta_f_in) for _ in range(1,num_streams)]
-
-        self._rational_resampler = filter.rational_resampler_ccf(1,2)
 
         for i in range(num_streams):
             self.connect((self, i),
@@ -235,7 +277,11 @@ Inputs and outputs
             self.connect((self._poc[i-1], 1), (self, num_streams+i))
 
         ## combined IQ output stream
-        self.connect((self._pfb_synthesizer, 0), (self._rational_resampler), (self, 0))
+        ## out: 4*delta_f_in if num_streams <= 3 else 8*delta_f_in
+        self._final_processing = final_processing(num_streams, delta_f_in)
+        self.connect((self._pfb_synthesizer, 0),
+                     (self._final_processing),
+                     (self, 0))
 
         self.msg_connect((self._align_streams.get_find_offsets(), 'fs'), (self._rotators, 'fs'))
 
