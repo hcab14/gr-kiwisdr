@@ -161,7 +161,7 @@ class final_processing(gr.hier_block2):
             self._mult_conj = blocks.multiply_conjugate_cc(1)
             self._carrier   = analog.sig_source_c(sampling_freq = 8*delta_f_in,
                                                   waveform      = analog.GR_COS_WAVE,
-                                                  wave_freq     = delta_f_in,
+                                                  wave_freq     = delta_f_in/2.0,
                                                   ampl          = 1.0,
                                                   offset        = 0.0)
             self.connect(blk_last,
