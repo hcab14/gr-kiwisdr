@@ -581,7 +581,7 @@ sample rate
     </param>
     <param>
       <key>host</key>
-      <value>host_name</value>
+      <value>'{}'.format(host_name)</value>
     </param>
     <param>
       <key>id</key>
@@ -609,7 +609,7 @@ sample rate
     </param>
     <param>
       <key>port</key>
-      <value>port_number</value>
+      <value>'{}'.format(port_number)</value>
     </param>
     <param>
       <key>rx_freq_kHz</key>
