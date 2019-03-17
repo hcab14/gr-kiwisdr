@@ -101,7 +101,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>6000</value>
+      <value>samp_rate//2</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -137,7 +137,7 @@
     </param>
     <param>
       <key>start</key>
-      <value>-6000</value>
+      <value>-samp_rate//2</value>
     </param>
     <param>
       <key>step</key>
@@ -145,7 +145,7 @@
     </param>
     <param>
       <key>stop</key>
-      <value>6000</value>
+      <value>+samp_rate//2</value>
     </param>
     <param>
       <key>rangeType</key>
@@ -157,6 +157,62 @@
     </param>
   </block>
   <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value>KiwiSDR
+hostname
+(as string)</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(458, 16)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>host_name</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>'jimlill.com'</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(746, 16)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>label</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>'{}:{}'.format(host_name, port_number)</value>
+    </param>
+  </block>
+  <block>
     <key>variable_qtgui_range</key>
     <param>
       <key>comment</key>
@@ -164,7 +220,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>-6000</value>
+      <value>-samp_rate//2</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -200,7 +256,7 @@
     </param>
     <param>
       <key>start</key>
-      <value>-6000</value>
+      <value>-samp_rate//2</value>
     </param>
     <param>
       <key>step</key>
@@ -208,7 +264,7 @@
     </param>
     <param>
       <key>stop</key>
-      <value>6000</value>
+      <value>+samp_rate//2</value>
     </param>
     <param>
       <key>rangeType</key>
@@ -217,6 +273,35 @@
     <param>
       <key>widget</key>
       <value>counter</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value>KiwiSDR
+port number
+(as string)</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(608, 16)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>port_number</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>'8073'</value>
     </param>
   </block>
   <block>
@@ -286,7 +371,9 @@
     <key>variable</key>
     <param>
       <key>comment</key>
-      <value></value>
+      <value>KiwiSDR
+sample rate
+(12000 or 20250)</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -294,7 +381,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(16, 112)</value>
+      <value>(352, 16)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -306,7 +393,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>12e3</value>
+      <value>20250</value>
     </param>
   </block>
   <block>
@@ -369,7 +456,7 @@
     </param>
     <param>
       <key>widget</key>
-      <value>slider</value>
+      <value>counter_slider</value>
     </param>
   </block>
   <block>
@@ -432,7 +519,7 @@
     </param>
     <param>
       <key>widget</key>
-      <value>slider</value>
+      <value>counter_slider</value>
     </param>
   </block>
   <block>
@@ -486,7 +573,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(170, 133)</value>
+      <value>(256, 240)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -494,7 +581,7 @@
     </param>
     <param>
       <key>host</key>
-      <value>aspliden.mooo.com</value>
+      <value>host_name</value>
     </param>
     <param>
       <key>id</key>
@@ -522,7 +609,7 @@
     </param>
     <param>
       <key>port</key>
-      <value>8073</value>
+      <value>port_number</value>
     </param>
     <param>
       <key>rx_freq_kHz</key>
@@ -577,7 +664,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(640, 208)</value>
+      <value>(640, 314)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -769,7 +856,7 @@
     </param>
     <param>
       <key>name</key>
-      <value>""</value>
+      <value>"spectrum @"+label</value>
     </param>
     <param>
       <key>nconnections</key>
@@ -864,7 +951,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(640, 74)</value>
+      <value>(640, 186)</value>
     </param>
     <param>
       <key>gui_hint</key>
@@ -892,7 +979,7 @@
     </param>
     <param>
       <key>legend</key>
-      <value>True</value>
+      <value>False</value>
     </param>
     <param>
       <key>alpha1</key>
@@ -1024,7 +1111,7 @@
     </param>
     <param>
       <key>name</key>
-      <value>"waterfall"</value>
+      <value>"waterfall @" + label</value>
     </param>
     <param>
       <key>nconnections</key>
@@ -1032,7 +1119,7 @@
     </param>
     <param>
       <key>showports</key>
-      <value>False</value>
+      <value>True</value>
     </param>
     <param>
       <key>freqhalf</key>
@@ -1067,7 +1154,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(309, 5)</value>
+      <value>(10, 101)</value>
     </param>
     <param>
       <key>gui_hint</key>
