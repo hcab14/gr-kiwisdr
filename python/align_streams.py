@@ -29,20 +29,18 @@ class find_offsets(gr.sync_block):
     This block determines offsets (number of samples) between a number of streams using rx_time tags
     Note that it assumes that the offsets are close to integer multiples of samples
     """
-    def __init__(self, num_streams):
+    def __init__(self, num_streams, same_kiwi):
         gr.sync_block.__init__(
             self,
             name    = 'find_offsets',
             in_sig  = num_streams*(np.complex64,),
             out_sig = num_streams*(np.complex64,))
         self._num_streams = num_streams
+        self._same_kiwi   = same_kiwi
         self._fs          = np.zeros(num_streams, dtype=np.float64) ## is set from 'rx_rate' tags
         self._tags        = [[] for _ in range(num_streams)]
         self._delays      = np.zeros(num_streams, dtype=np.int)
-        self._port_delay  = pmt.intern('delay')
         self._port_fs     = pmt.intern('fs')
-        self._pmt_align   = pmt.intern('align')
-        self.message_port_register_out(self._port_delay)
         self.message_port_register_out(self._port_fs)
         self.set_tag_propagation_policy(gr.TPP_ONE_TO_ONE)
 
@@ -50,6 +48,7 @@ class find_offsets(gr.sync_block):
         self._delays[:] = 0
         self._fs[:]     = 0
         self._tags      = [[] for _ in range(self._num_streams)]
+        self._offsets   = None
         return True
 
     def work(self, input_items, output_items):
@@ -94,22 +93,17 @@ class find_offsets(gr.sync_block):
             offsets = np.zeros(self._num_streams, dtype=np.int)
             offsets[0]  = 0
             offsets[1:] = np.round(ds)
-            if np.max(np.abs(offsets)) < 5*self._fs[0] and np.max(np.abs(offsets[1:]-ds)) < 0.2:
-                ## delay blocks have a problem with large positive delays
+            if np.max(np.abs(offsets)) < 5*self._fs[0] and (np.max(np.abs(offsets[1:]-ds)) < 0.2 or not self._same_kiwi):
                 offsets -= np.max(offsets)
-                ## reduce delays for delay blocks to <= 512 samples
-                if np.max(-offsets) > 512:
+                if np.max(-offsets) > 0:
                     for i in range(self._num_streams):
-                        to_consume = min(int(512*np.floor(-offsets[i]/512)), len(input_items[i]))
-                        #gr.log.info('to_consume[{}] = {}'.format(i, to_consume))
+                        to_consume = min(-offsets[i], len(input_items[i]))
+                        gr.log.info('to_consume[{}] = {}'.format(i, to_consume))
                         self.consume(i, to_consume)
                         self._delays[i] += to_consume
+                        ##self.declare_sample_delay(self,i, self._delays[i])
                         self._tags[i] = []
                     return 0
-                ## publish the offsets to the message port
-                msg_out  = pmt.make_dict()
-                msg_out  = pmt.dict_add(msg_out, pmt.intern('delays'), pmt.to_pmt([x for x in offsets]))
-                self.message_port_pub(self._port_delay, msg_out)
             else:
                 gr.log.warn('ds={} fs={}'.format(ds, self._fs))
 
@@ -119,64 +113,21 @@ class find_offsets(gr.sync_block):
 
         return n
 
-class delay_proxy(gr.sync_block):
-    """
-    gr.sync_block (pass-through) containing an array of delay blocks.
-    Delays are set via message parsing.
-    """
-    def __init__(self, num_streams):
-        gr.sync_block.__init__(
-            self,
-            name="delay_proxy",
-            in_sig  = num_streams*(np.complex64,),
-            out_sig = num_streams*(np.complex64,))
-        self._num_streams = num_streams
-        self._delays      = [blocks.delay(gr.sizeof_gr_complex, 0) for _ in range(num_streams)]
-        self._port_delay  = pmt.intern('delay')
-        self._got_message = False
-        self.message_port_register_in(self._port_delay)
-        self.set_msg_handler(self._port_delay, self.msg_handler_delay)
-
-    def get(self, i):
-        return self._delays[i]
-
-    def work(self, input_items, output_items):
-        ## make sure a message is received before the 1st sample is passed through
-        if not self._got_message:
-            #gr.log.info('delay_proxy 0')
-            return 0
-        for i in range(self._num_streams):
-            output_items[i][:] = input_items[i]
-        return len(input_items[0])
-
-    def msg_handler_delay(self, msg_in):
-        msg = pmt.to_python(msg_in)
-        delays = msg['delays']
-        #gr.log.info('delays={}'.format(delays))
-        for i,d in enumerate(delays):
-            self._delays[i].set_dly(d)
-        self._got_message = True
-
 class align_streams(gr.hier_block2):
     """
     Block for aligning KiwiSDR IQ streams with GNSS timestamps
     Note that all used IQ streams have to be from the same KiwiSDR
     """
-    def __init__(self, num_streams):
+    def __init__(self, num_streams, same_kiwi=True):
         gr.hier_block2.__init__(self,
                                 "align_streams",
                                 gr.io_signature(num_streams, num_streams, gr.sizeof_gr_complex),
                                 gr.io_signature(num_streams, num_streams, gr.sizeof_gr_complex))
-        self._find_offsets = find_offsets(num_streams)
-        self._delays       = delay_proxy(num_streams)
+        self._find_offsets = find_offsets(num_streams, same_kiwi)
         for i in range(num_streams):
             self.connect((self, i),
                          (self._find_offsets, i),
-                         (self._delays, i),
-                         (self._delays.get(i)),
                          (self, i))
-
-        self.msg_connect((self._find_offsets, 'delay'), (self._delays, 'delay'))
 
     def get_find_offsets(self):
         return self._find_offsets
