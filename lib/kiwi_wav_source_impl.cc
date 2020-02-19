@@ -106,7 +106,7 @@ bool kiwi_wav_source_impl::start()
         return false;
       }
       // skip the first two chunks
-      for (int i=0; i<2*SAMPLES_PER_CHUNK;) {
+      for (int i=0; i<4*SAMPLES_PER_CHUNK;) {
         bool has_kiwi_chunk=false, eof=false;
         get_next_sample(has_kiwi_chunk, eof);
         if (eof)

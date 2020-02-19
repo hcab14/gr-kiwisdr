@@ -19,6 +19,7 @@
  */
 
 #include <regex>
+#include <random>
 
 #include "kiwi_ws_client.h"
 
@@ -126,6 +127,11 @@ void kiwi_ws_client::disconnect() {
 }
 
 std::string kiwi_ws_client::make_uri(std::string const &what) const {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(1, 1024*1024*1024);
+  return "/" + str(boost::format("%d") % dis(gen)) + "/" + what;
+
   auto const tnow = std::chrono::system_clock::now();
   time_t const t0 = std::chrono::system_clock::to_time_t(tnow);
   return "/" + std::to_string(t0) + "/" + what;

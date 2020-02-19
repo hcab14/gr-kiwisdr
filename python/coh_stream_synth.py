@@ -29,7 +29,7 @@ from gnuradio import analog
 
 import pmt
 
-from align_streams import align_streams
+from kiwisdr import align_streams
 
 
 class phase_estimator(gr.sync_block):
@@ -79,7 +79,7 @@ class phase_offset_corrector(gr.hier_block2):
         self._v2s = blocks.vector_to_stream(gr.sizeof_gr_complex, vlen*decim)
 
         ## phase offsets depend on the combination of resampling and pfb_synth filter
-        self._pB = phase_estimator(vlen, decim, np.exp(2j*np.pi*0.0))
+        self._pB = phase_estimator(vlen, decim, np.exp(2j*np.pi*0.5)) ## phase 1 for num_streams==4, 0.5 for num_streams==6
 
         ## output = conj([conj(#0) * #1]) * #1
         self.connect((self, 0),
@@ -170,7 +170,7 @@ class final_processing(gr.hier_block2):
                          (self._mult_conj, 1))
             blk_last = self._mult_conj
 
-        if num_streams <= 3:
+        if num_streams <= 10:
             self._final_resamp = filter.rational_resampler_ccf(1,2)
             self.connect(blk_last, (self._final_resamp))
             blk_last = self._final_resamp
@@ -202,7 +202,7 @@ Inputs and outputs
         interp = fsr/factor
         decim  = fs_in/factor
 
-        self._align_streams = align_streams(num_streams)
+        self._align_streams = align_streams(num_streams, True)
         self._rotators      = rotator_proxy(num_streams, fs_in, delta_f_in)
 
         self._taps_resampler = taps_resampler = filter.firdes.low_pass_2(gain             = 2*interp,
@@ -222,7 +222,7 @@ Inputs and outputs
                                                              attenuation_dB   = 80.0,
                                                              window           = filter.firdes.WIN_BLACKMAN_HARRIS)
 
-        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 4,
+        self._pfb_synthesizer = filter.pfb_synthesizer_ccf(numchans = 6,
                                                            taps     = (taps_pfb),
                                                            twox     = True)
         channel_map = []
@@ -233,7 +233,7 @@ Inputs and outputs
         if num_streams == 4:
             channel_map = [7,0,1,2]
         if num_streams == 5:
-            channel_map = [6,7,0,1,2]
+            channel_map = [10,11,0,1,2]
         if num_streams == 6:
             channel_map = [6,7,0,1,2,3]
         self._pfb_synthesizer.set_channel_map(channel_map)
@@ -283,5 +283,6 @@ Inputs and outputs
                      (self._final_processing),
                      (self, 0))
 
-        self.msg_connect((self._align_streams.get_find_offsets(), 'fs'), (self._rotators, 'fs'))
+        ##self.msg_connect((self._align_streams.get_find_offsets(), 'fs'), (self._rotators, 'fs'))
+        self.msg_connect((self._align_streams, 'fs'), (self._rotators, 'fs'))
 

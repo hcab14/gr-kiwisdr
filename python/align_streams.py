@@ -85,6 +85,7 @@ class find_offsets(gr.sync_block):
             fd = lambda x,y,fsx,fsy: x['gnss_sec']-y['gnss_sec'] - (x['samp_num']/fsx-y['samp_num']/fsy)
             ds = np.array([fd(self._tags[i][0], self._tags[0][0], self._fs[i], self._fs[0]) + self._delays[i]/self._fs[i]-self._delays[0]/self._fs[0]
                            for i in range(1,self._num_streams)], dtype=np.double) * self._fs[1:]
+            print('ds=', ds)
             ## remove the processed tags and update tags_ok
             for i in range(self._num_streams):
                 self._tags[i] =  self._tags[i][1:]
@@ -93,15 +94,16 @@ class find_offsets(gr.sync_block):
             offsets = np.zeros(self._num_streams, dtype=np.int)
             offsets[0]  = 0
             offsets[1:] = np.round(ds)
+            print('offsets=', offsets)
             if np.max(np.abs(offsets)) < 5*self._fs[0] and (np.max(np.abs(offsets[1:]-ds)) < 0.2 or not self._same_kiwi):
                 offsets -= np.max(offsets)
+                print('offsets=', offsets)
                 if np.max(-offsets) > 0:
                     for i in range(self._num_streams):
                         to_consume = min(-offsets[i], len(input_items[i]))
                         gr.log.info('to_consume[{}] = {}'.format(i, to_consume))
                         self.consume(i, to_consume)
                         self._delays[i] += to_consume
-                        ##self.declare_sample_delay(self,i, self._delays[i])
                         self._tags[i] = []
                     return 0
             else:

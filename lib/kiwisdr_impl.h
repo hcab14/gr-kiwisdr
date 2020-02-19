@@ -70,6 +70,7 @@ private:
 } __attribute__((__packed__)) ;
 
 static const pmt::pmt_t TIME_KEY = pmt::string_to_symbol("rx_time"); // taken from gr-uhd/lib/usrp_source_impl.cc
+static const pmt::pmt_t RATE_KEY = pmt::string_to_symbol("rx_rate");
 static const pmt::pmt_t RSSI_KEY = pmt::string_to_symbol("rssi");
 
 class kiwisdr_impl : public kiwisdr
@@ -85,6 +86,10 @@ private:
 
   snd_info_header       _last_snd_header;
   gnss_timestamp_header _last_gnss_timestamp;
+  double                _last_gnss_time;
+  double                _sample_rate;
+  int                   _sample_rate_counter;
+  bool                  _rate_tag_ok;
   bool                  _gnss_tag_done;
   pmt::pmt_t            _id;
 public:

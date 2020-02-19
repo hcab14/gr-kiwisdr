@@ -26,7 +26,9 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 
-list(APPEND kiwisdr_sources kiwi_wav_source_impl.cc)
+list(APPEND kiwisdr_sources
+  align_streams_impl.cc
+  kiwi_wav_source_impl.cc)
 if(GR_KIWI_WS_CLIENT)
   list(APPEND kiwisdr_sources kiwi_ws_client.cc kiwisdr_impl.cc)
 endif()

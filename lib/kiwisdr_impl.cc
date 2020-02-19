@@ -62,6 +62,10 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _rx_parameters{freq_kHz, low_cut_Hz, high_cut_Hz}
   , _last_snd_header()
   , _last_gnss_timestamp()
+  , _last_gnss_time(0)
+  , _sample_rate(12e3)
+  , _sample_rate_counter(0)
+  , _rate_tag_ok(false)
   , _gnss_tag_done(false)
   , _id(pmt::mp(_host+":"+_port))
 {
@@ -116,8 +120,6 @@ int kiwisdr_impl::general_work(int noutput_items,
     // (1) decode snd_info_header
     std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
     int header_length = sizeof(snd_info);
-    //    insert a tag with the RSSI value (dB)
-    add_item_tag(0, nitems_written(0), RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
 
     if (snd_info.seq() - _last_snd_header.seq() != 1)
       GR_LOG_WARN(d_logger, "dropped packet");
@@ -128,29 +130,49 @@ int kiwisdr_impl::general_work(int noutput_items,
     std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
     header_length += sizeof(gnss_timestamp_header);
     //     insert a stream tag for each new (=not interpolated) gps timestamp
-    if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 && !_gnss_tag_done) {
+    if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 &&
+        !_gnss_tag_done && _sample_rate_counter > 0) {
       GR_LOG_DEBUG(d_logger,(boost::format("SND: seq= %5d RSSi=%5.1f gpssec=%16.9f (%3d)")
                              % snd_info.seq()
                              % snd_info.rssi()
                              % gnss_timestamp.as_double()
                              % gnss_timestamp.last_gps_solution()));
-      // taken from gr-uhd/lib/usrp_source_impl.cc
-      pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
-                                             pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
-      add_item_tag(0, nitems_written(0), TIME_KEY, val, _id);
+      double const gnss_time = gnss_timestamp.as_double();
+      double delta_t = gnss_time - _last_gnss_time;
+      delta_t += (delta_t < 0)*7*24*3600; // GNSS week rollover
+      _sample_rate = _sample_rate_counter/delta_t;
+      if (_sample_rate > 10e3) {
+        add_item_tag(0, nitems_written(0)+produced_output_items,
+                     RATE_KEY, pmt::from_double(_sample_rate), _id);
+        _rate_tag_ok = true;
+      }
+      if (_rate_tag_ok) {
+        // taken from gr-uhd/lib/usrp_source_impl.cc
+        pmt::pmt_t const val = pmt::make_tuple(pmt::from_uint64(gnss_timestamp.gpssec()),
+                                               pmt::from_double(1e-9*gnss_timestamp.gpsnsec()));
+        add_item_tag(0, nitems_written(0)+produced_output_items,
+                     TIME_KEY, val, _id);
+      }
+      _last_gnss_time = gnss_time;
+      _sample_rate_counter = 0;
     }
-    _gnss_tag_done       = (gnss_timestamp.last_gps_solution() == 0);
-    _last_gnss_timestamp = gnss_timestamp;
+    _gnss_tag_done        = (gnss_timestamp.last_gps_solution() == 0);
+    _last_gnss_timestamp  = gnss_timestamp;
+    _sample_rate_counter += num_complex_samples;
 
-    // (2) big-endian -> little endian conversion
-    volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
+    if (_rate_tag_ok) {
+      //    insert a tag with the RSSI value (dB)
+      add_item_tag(0, nitems_written(0)+produced_output_items,
+                   RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
+      // (2) big-endian -> little endian conversion
+      volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
 
-    // (3) uint16_t -> float conversion
-    volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
+      // (3) uint16_t -> float conversion
+      volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
 
-    produced_output_items += num_complex_samples;
-    out                   += num_complex_samples;
-
+      produced_output_items += num_complex_samples;
+      out                   += num_complex_samples;
+    }
     _ws_client_ptr->data_queue().pop();
   }
   // Tell runtime system how many output items we produced.
@@ -160,6 +182,9 @@ int kiwisdr_impl::general_work(int noutput_items,
 bool kiwisdr_impl::start() {
   GR_LOG_DEBUG(d_logger, "kiwisdr_impl::start");
   gr::thread::scoped_lock lock(d_setlock);
+
+  _rate_tag_ok = false;
+
   if (_ws_client_ptr)
     return false;
 

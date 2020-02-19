@@ -2,17 +2,20 @@
 
 #define KIWISDR_API
 
-%include "gnuradio.i"			// the common stuff
+%include "gnuradio.i"
 
 //load generated python docstrings
 %include "kiwisdr_swig_doc.i"
 
 %{
+#include "kiwisdr/align_streams.h"
 #include "kiwisdr/kiwi_wav_source.h"
 %}
 
-%include "kiwisdr/kiwi_wav_source.h"
+%include "kiwisdr/align_streams.h"
+GR_SWIG_BLOCK_MAGIC2(kiwisdr, align_streams);
 
+%include "kiwisdr/kiwi_wav_source.h"
 GR_SWIG_BLOCK_MAGIC2(kiwisdr, kiwi_wav_source);
 
 
