@@ -38,7 +38,7 @@ namespace kiwisdr {
 class KIWISDR_API kiwi_wav_source : virtual public gr::sync_block
 {
   public:
-  typedef boost::shared_ptr<kiwi_wav_source> sptr;
+  typedef std::shared_ptr<kiwi_wav_source> sptr;
 
   /*!
    * \brief Return a shared_ptr to a new instance of kiwisdr::kiwi_wav_source.

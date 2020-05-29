@@ -35,7 +35,7 @@ namespace kiwisdr {
 class KIWISDR_API align_streams : virtual public gr::sync_block
 {
 public:
-  typedef boost::shared_ptr<align_streams> sptr;
+  typedef std::shared_ptr<align_streams> sptr;
 
   virtual ~align_streams() {}
 

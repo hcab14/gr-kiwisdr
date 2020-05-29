@@ -10,8 +10,9 @@ Gnuradio OOT module for the [KiwiSDR](http://kiwisdr.com/)
 
 * C++-11 compiler
 * git, cmake, swig, doxygen
-* gnuradio 3.8 and above (for gnuradio 3.7 use the maint-3.7 branch)
+* gnuradio 3.9 and above (for gnuradio 3.7 use the maint-3.7 branch)
 * boost (libboost-pythondev, libboostdev and libcppunit-dev) >= 1.45; for the KiwiSDR websocket client boost >=1.65  is needed (may or may not work with earlier boost versions)
+* liborc-dev (needed for gnuradio 3.9)
 
 ## Installation
 
@@ -43,6 +44,7 @@ For building without the KiwiSDR websocket client (no dependency on recent boost
 
 ### master branch
  * GNURadio 3.9 master branch on Ubuntu 20.04
+ * GNURadio-3.9 from PPA
 
 ## GNURadio blocks
 

@@ -35,7 +35,7 @@ namespace kiwisdr {
 class KIWISDR_API kiwisdr : virtual public gr::block
 {
   public:
-  typedef boost::shared_ptr<kiwisdr> sptr;
+  typedef std::shared_ptr<kiwisdr> sptr;
 
   virtual ~kiwisdr() {}
 
