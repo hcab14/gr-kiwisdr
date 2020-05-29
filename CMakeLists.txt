@@ -73,7 +73,10 @@ ENDIF()
 ########################################################################
 # Install directories
 ########################################################################
-find_package(Gnuradio "3.9" REQUIRED COMPONENTS analog blocks digital filter fft)
+find_package(Gnuradio "3.9" COMPONENTS analog blocks digital filter fft)
+if(NOT Gnuradio_FOUND) ## fall back to v3.8 if latest master is not found
+  find_package(Gnuradio "3.8" REQUIRED COMPONENTS analog blocks digital filter fft)
+endif()
 include(GrVersion)
 
 include(GrPlatform) #define LIB_SUFFIX
