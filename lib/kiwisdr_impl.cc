@@ -76,7 +76,6 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
 // virtual destructor.
 kiwisdr_impl::~kiwisdr_impl() {}
 
-
 int kiwisdr_impl::general_work(int noutput_items,
                                gr_vector_int& ninput_items,
                                gr_vector_const_void_star& input_items,
@@ -86,13 +85,17 @@ int kiwisdr_impl::general_work(int noutput_items,
   int produced_output_items = 0;
 
   if (!_ws_client_ptr) {
-    usleep(10);
     return produced_output_items;
   }
 
-  gr::thread::scoped_lock lock2(_ws_client_ptr->mutex());
-  if (!_ws_client_ptr->get_cond().timed_wait(lock2, boost::posix_time::milliseconds(10))) // timeout
+  // gr::thread::scoped_lock lock2(_ws_client_ptr->mutex());
+  if (!_ws_client_ptr->get_cond().timed_wait(lock, boost::posix_time::milliseconds(500))) // timeout
     return produced_output_items;
+
+  // this adds additional buffering
+  if (_ws_client_ptr->data_queue().size() < 16) {
+     return produced_output_items;
+  }
 
   gr_complex* out = (gr_complex*)(output_items[0]);
 
@@ -114,15 +117,16 @@ int kiwisdr_impl::general_work(int noutput_items,
     assert(num_complex_samples < noutput_items);
 
     // do not overflow the output
-    if (produced_output_items + ((snd_buffer.size()-full_header_length)>>2) >= noutput_items)
+    if (produced_output_items + ((snd_buffer.size()-full_header_length)>>2) >= noutput_items) {
       break;
+    }
 
     // (1) decode snd_info_header
     std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
     int header_length = sizeof(snd_info);
-
-    if (snd_info.seq() - _last_snd_header.seq() != 1)
+    if (snd_info.seq() - _last_snd_header.seq() != 1) {
       GR_LOG_WARN(d_logger, "dropped packet");
+    }
 
     _last_snd_header = snd_info;
 
@@ -160,19 +164,19 @@ int kiwisdr_impl::general_work(int noutput_items,
     _last_gnss_timestamp  = gnss_timestamp;
     _sample_rate_counter += num_complex_samples;
 
-    if (_rate_tag_ok) {
-      //    insert a tag with the RSSI value (dB)
-      add_item_tag(0, nitems_written(0)+produced_output_items,
-                   RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
-      // (2) big-endian -> little endian conversion
-      volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
+    //    insert a tag with the RSSI value (dB)
+    add_item_tag(0, nitems_written(0)+produced_output_items,
+                 RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
 
-      // (3) uint16_t -> float conversion
-      volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
+    // (2) big-endian -> little endian conversion
+    volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
 
-      produced_output_items += num_complex_samples;
-      out                   += num_complex_samples;
-    }
+    // (3) uint16_t -> float conversion
+    volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
+
+    produced_output_items += num_complex_samples;
+    out                   += num_complex_samples;
+
     _ws_client_ptr->data_queue().pop();
   }
   // Tell runtime system how many output items we produced.
