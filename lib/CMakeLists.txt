@@ -25,6 +25,7 @@ if(NOT kiwisdr_sources)
 endif(NOT kiwisdr_sources)
 
 add_library(gnuradio-kiwisdr SHARED ${kiwisdr_sources})
+
 target_link_libraries(gnuradio-kiwisdr
   gnuradio::gnuradio-runtime
   gnuradio::gnuradio-analog
@@ -32,7 +33,9 @@ target_link_libraries(gnuradio-kiwisdr
   gnuradio::gnuradio-digital
   gnuradio::gnuradio-filter
   gnuradio::gnuradio-fft
- )
+  ${ZeroMQ_LIBRARY}
+  )
+
 target_include_directories(gnuradio-kiwisdr
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>

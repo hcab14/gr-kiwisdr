@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Christoph Mayer hcab14@gmail.com.
+ * Copyright 2018-2020 Christoph Mayer hcab14@gmail.com.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +21,14 @@
 #include <regex>
 #include <random>
 
+#include <boost/asio/buffers_iterator.hpp>
+
 #include "kiwi_ws_client.h"
 
 namespace gr {
 namespace kiwisdr {
 
-kiwi_ws_client::kiwi_ws_client()
+kiwi_ws_client::kiwi_ws_client(std::weak_ptr<zmq::socket_t> pub)
   : _ioc{1}
   , _mutex()
   , _strand(_ioc)
@@ -34,10 +36,8 @@ kiwi_ws_client::kiwi_ws_client()
   , _deadline_timer_close(_ioc)
   , _resolver(_ioc)
   , _ws(_ioc)
-  , _ws_cond_wait_data()
   , _ws_thread()
   , _ws_buffer()
-  , _ws_data_queue()
   , _ws_write_queue()
   , _connected(false)
   , _disconnecting(false)
@@ -65,8 +65,8 @@ kiwi_ws_client::kiwi_ws_client()
          {"compression", boost::format("SET compression=%d")},
          {"wf_comp",     boost::format("SET wf_comp=%d")},
          {"wf_speed",    boost::format("SET wf_speed=%d")}}
+  , _zmq_pub(pub)
 {
-  // empty
 }
 
 kiwi_ws_client::~kiwi_ws_client() {
@@ -267,14 +267,19 @@ void kiwi_ws_client::on_read(boost::system::error_code const &ec,
     gr::thread::scoped_lock lock(_mutex);
     size_t const n_bytes = boost::asio::buffer_size(_ws_buffer.data());
 
-    auto const p0 = boost::asio::buffer_cast<uint8_t const*>(boost::beast::buffers_front(_ws_buffer.data()));
-    std::vector<uint8_t> snd_buffer(n_bytes);
-    std::copy(p0, p0+n_bytes, snd_buffer.begin());
-    _ws_data_queue.emplace(snd_buffer);
-
-    _ws_cond_wait_data.notify_one();
+    if (auto pub = _zmq_pub.lock()) {
+      zmq::message_t msg(n_bytes);
+      std::memcpy(msg.data(), _ws_buffer.data().data(), n_bytes);
+      zmq::send_result_t const success = pub->send(msg, zmq::send_flags::none);
+      if (!success) {
+        std::cerr << "ZMQ send failed" << std::endl;
+      }
+    } else {
+      _connected = false;
+    }
     _ws_buffer.consume(n_bytes);
   } else {
+    // ignore any other packets
   }
 
   // make sure we consumed all bytes in the buffer

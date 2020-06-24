@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Christoph Mayer hcab14@gmail.com.
+ * Copyright 2018-2020 Christoph Mayer hcab14@gmail.com.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,9 @@
 #define INCLUDED_KIWISDR_KIWISDR_IMPL_H
 
 #include <kiwisdr/kiwisdr.h>
+
+#include <zmq.hpp>
+#include <volk/volk_alloc.hh>
 
 #include "kiwi_rx_parameters.h"
 #include "kiwi_ws_client.h"
@@ -77,21 +80,23 @@ class kiwisdr_impl : public kiwisdr
 {
 private:
   std::shared_ptr<kiwi_ws_client> _ws_client_ptr;
-
   std::map<std::string, std::string> _msg;
-
   std::string _host;
   std::string _port;
   kiwi_rx_parameters _rx_parameters;
-
-  snd_info_header       _last_snd_header;
+  snd_info_header _last_snd_header;
   gnss_timestamp_header _last_gnss_timestamp;
-  double                _last_gnss_time;
-  double                _sample_rate;
-  int                   _sample_rate_counter;
-  bool                  _rate_tag_ok;
-  bool                  _gnss_tag_done;
-  pmt::pmt_t            _id;
+  double _last_gnss_time;
+  double _sample_rate;
+  int _sample_rate_counter;
+  bool _rate_tag_ok;
+  bool _gnss_tag_done;
+  pmt::pmt_t _id;
+  zmq::context_t _zmq_ctx;
+  zmq::socket_t _zmq_sub;
+  std::shared_ptr<zmq::socket_t> _zmq_pub;
+  volk::vector<gr_complex> _saved_samples;
+
 public:
   kiwisdr_impl(std::string const &host,
                std::string const &port,

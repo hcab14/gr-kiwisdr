@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Christoph Mayer hcab14@gmail.com.
+ * Copyright 2018-2020 Christoph Mayer hcab14@gmail.com.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@
 #include <deque>
 #include <queue>
 
+#include <zmq.hpp>
+
 #include <gnuradio/thread/thread.h>
 
 #include "kiwi_rx_parameters.h"
@@ -54,7 +56,7 @@ namespace kiwisdr {
 
 class kiwi_ws_client : public std::enable_shared_from_this<kiwi_ws_client> {
 public:
-  kiwi_ws_client();
+  kiwi_ws_client(std::weak_ptr<zmq::socket_t> pub);
   virtual ~kiwi_ws_client();
 
   typedef std::queue<std::vector<std::uint8_t> > ws_data_queue_type;
@@ -68,10 +70,7 @@ public:
 
   void disconnect();
 
-  gr::thread::condition_variable&  get_cond() { return _ws_cond_wait_data; }
-
   gr::thread::mutex &mutex() { return _mutex; }
-  ws_data_queue_type& data_queue() { return _ws_data_queue; }
 
 protected:
   // returns /{unix time seconds}/what
@@ -128,10 +127,8 @@ private:
   boost::asio::deadline_timer     _deadline_timer_close;
   tcp::resolver                   _resolver;
   websocket::stream<tcp::socket>  _ws;
-  gr::thread::condition_variable  _ws_cond_wait_data;
   gr::thread::thread              _ws_thread;
   boost::beast::flat_buffer       _ws_buffer;
-  ws_data_queue_type              _ws_data_queue;
   std::deque<std::string>         _ws_write_queue;
   std::atomic<bool>               _connected;
   std::atomic<bool>               _disconnecting;
@@ -148,6 +145,8 @@ private:
   std::map<std::string, std::string> _msg;
 
   std::map<std::string const, boost::format> _fmt;
+
+  std::weak_ptr<zmq::socket_t> _zmq_pub;
 } ;
 
 } // namespace kiwisdr

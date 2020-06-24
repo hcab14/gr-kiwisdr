@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2018 Christoph Mayer hcab14@gmail.com.
+ * Copyright 2018-2020 Christoph Mayer hcab14@gmail.com.
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -68,9 +68,16 @@ kiwisdr_impl::kiwisdr_impl(std::string const &host,
   , _rate_tag_ok(false)
   , _gnss_tag_done(false)
   , _id(pmt::mp(_host+":"+_port))
+  , _zmq_ctx(1)
+  , _zmq_sub(_zmq_ctx, ZMQ_PAIR)
+  , _zmq_pub()
+  , _saved_samples()
 {
-    GR_LOG_DECLARE_LOGPTR(d_logger);
-    GR_LOG_ASSIGN_LOGPTR(d_logger, "kiwisdr@"+_host+":"+_port);
+  GR_LOG_DECLARE_LOGPTR(d_logger);
+  GR_LOG_ASSIGN_LOGPTR(d_logger, "kiwisdr@"+_host+":"+_port);
+  _zmq_sub.bind("inproc://iq");
+  _zmq_pub = std::make_shared<zmq::socket_t>(_zmq_ctx, ZMQ_PAIR);
+  _zmq_pub->connect("inproc://iq");
 }
 
 // virtual destructor.
@@ -88,42 +95,43 @@ int kiwisdr_impl::general_work(int noutput_items,
     return produced_output_items;
   }
 
-  // gr::thread::scoped_lock lock2(_ws_client_ptr->mutex());
-  if (!_ws_client_ptr->get_cond().timed_wait(lock, boost::posix_time::milliseconds(500))) // timeout
-    return produced_output_items;
+  gr_complex* out = reinterpret_cast<gr_complex*>(output_items[0]);
 
-  // this adds additional buffering
-  if (_ws_client_ptr->data_queue().size() < 16) {
-     return produced_output_items;
+  // first pop the maximum number of saved samples
+  size_t i = 0;
+  for (; i < _saved_samples.size() && produced_output_items < noutput_items; ++i) {
+    out[i] = _saved_samples[i];
+    ++produced_output_items;
   }
+  _saved_samples.erase(_saved_samples.begin(), _saved_samples.begin() + i);
 
-  gr_complex* out = (gr_complex*)(output_items[0]);
+  // if there was no space for all saved samples return
+  if (i != _saved_samples.size())
+    return produced_output_items;
 
   snd_info_header       snd_info;
   gnss_timestamp_header gnss_timestamp;
 
-  std::size_t const full_header_length  = sizeof(snd_info) + sizeof(gnss_timestamp);
-  assert(snd_buffer.size() >= full_header_length);
-
-  while (!_ws_client_ptr->data_queue().empty() && produced_output_items < noutput_items) {
-    std::vector<std::uint8_t> const& snd_buffer = _ws_client_ptr->data_queue().front();
-    assert((snd_buffer.size() - header_length) % 2 == 0);
-
-    std::size_t const num_floats = (snd_buffer.size() - full_header_length) >> 1;
-    assert(num_float % 2 == 0);
-
-    std::size_t const num_complex_samples = num_floats >> 1;
-    // for now we do not handle the following case
-    assert(num_complex_samples < noutput_items);
-
-    // do not overflow the output
-    if (produced_output_items + ((snd_buffer.size()-full_header_length)>>2) >= noutput_items) {
-      break;
+  size_t const n = 16; // maximum number of ZMQ messages to process
+  zmq::message_t msgs[n];
+  for (auto& msg : msgs) {
+    zmq::recv_result_t const success = _zmq_sub.recv(msg, zmq::recv_flags::none);
+    if (!success) {
+      GR_LOG_ERROR(d_logger, "ZMQ recv failed");
+      continue;
     }
+    std::size_t const full_header_length  = sizeof(snd_info) + sizeof(gnss_timestamp);
+
+    std::vector<std::uint8_t>::iterator
+      it(reinterpret_cast<std::uint8_t*>(msg.data()));
+
+    std::size_t const num_floats = (msg.size() - full_header_length) >> 1;
+    GR_LOG_ASSERT(d_logger, num_floats % 2 == 0, "num_floats % 2 == 0");
+    std::size_t const num_complex_samples = num_floats >> 1;
 
     // (1) decode snd_info_header
-    std::memcpy(&snd_info, &snd_buffer[0], sizeof(snd_info));
-    int header_length = sizeof(snd_info);
+    std::memcpy(&snd_info, msg.data(), sizeof(snd_info));
+    it += sizeof(snd_info);
     if (snd_info.seq() - _last_snd_header.seq() != 1) {
       GR_LOG_WARN(d_logger, "dropped packet");
     }
@@ -131,8 +139,9 @@ int kiwisdr_impl::general_work(int noutput_items,
     _last_snd_header = snd_info;
 
     // (2) decode gnss timestamp header (IQ mode only)
-    std::memcpy(&gnss_timestamp, &snd_buffer[sizeof(snd_info_header)], sizeof(gnss_timestamp));
-    header_length += sizeof(gnss_timestamp_header);
+    std::memcpy(&gnss_timestamp, &(it[0]), sizeof(gnss_timestamp));
+    it += sizeof(gnss_timestamp);
+
     //     insert a stream tag for each new (=not interpolated) gps timestamp
     if (gnss_timestamp.last_gps_solution() - _last_gnss_timestamp.last_gps_solution() < 0 &&
         !_gnss_tag_done && _sample_rate_counter > 0) {
@@ -169,16 +178,25 @@ int kiwisdr_impl::general_work(int noutput_items,
                  RSSI_KEY, pmt::mp(snd_info.rssi()), _id);
 
     // (2) big-endian -> little endian conversion
-    volk_16u_byteswap((uint16_t*)(&snd_buffer[header_length]), num_floats);
+    volk_16u_byteswap(reinterpret_cast<uint16_t*>(&it[0]), num_floats);
 
-    // (3) uint16_t -> float conversion
-    volk_16i_s32f_convert_32f((float*)(out), (int16_t const*)(&snd_buffer[header_length]), float((1<<15)-1), num_floats);
-
-    produced_output_items += num_complex_samples;
-    out                   += num_complex_samples;
-
-    _ws_client_ptr->data_queue().pop();
+    if (produced_output_items + num_complex_samples < noutput_items) {
+      // (3) uint16_t -> float conversion
+      volk_16i_s32f_convert_32f(reinterpret_cast<float*>(out),
+                                reinterpret_cast<int16_t const*>(&it[0]),
+                                float((1<<15)-1), num_floats);
+      produced_output_items += num_complex_samples;
+      out                   += num_complex_samples;
+    } else {
+      // at this point _saved_samples is empty
+      _saved_samples.resize(num_complex_samples);
+      volk_16i_s32f_convert_32f(reinterpret_cast<float*>(_saved_samples.data()),
+                                reinterpret_cast<int16_t const*>(&it[0]),
+                                float((1<<15)-1), num_floats);
+      break;
+    }
   }
+
   // Tell runtime system how many output items we produced.
   return produced_output_items;
 }
@@ -192,7 +210,7 @@ bool kiwisdr_impl::start() {
   if (_ws_client_ptr)
     return false;
 
-  _ws_client_ptr = std::make_shared<kiwi_ws_client>();
+  _ws_client_ptr = std::make_shared<kiwi_ws_client>(_zmq_pub);
   _ws_client_ptr->connect(_host, _port, _rx_parameters);
 
   return true;
@@ -203,8 +221,11 @@ bool kiwisdr_impl::stop() {
   if (!_ws_client_ptr)
     return false;
 
+  _zmq_pub = nullptr;
+
   _ws_client_ptr->disconnect();
   _ws_client_ptr = nullptr;
+
   return true;
 }
 
